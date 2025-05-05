@@ -105,6 +105,7 @@ outer.left = 5
 
 # App shortcuts
 alt-b = 'exec-and-forget open -a /Applications/Safari.app'
+alt-f = 'exec-and-forget open -a Finder'
 alt-t = 'exec-and-forget open -a /Applications/Hyper.app'
 alt-c = 'exec-and-forget open -a /Applications/Cursor.app'
 alt-s = 'exec-and-forget open -a /Applications/Slack.app'
@@ -115,7 +116,7 @@ alt-shift-r = ['exec-and-forget /opt/homebrew/bin/sketchybar --reload']
 # See: https://nikitabobko.github.ioeAeroSpace/commands#layout
 alt-e = 'layout tiles horizontal vertical'
 alt-comma = 'layout accordion horizontal vertical'
-alt-f = 'fullscreen'
+alt-enter = 'fullscreen'
 alt-y = ['focus right', 'join-with down', 'layout tiles horizontal']
 # See: https://nikitabobko.github.io/AeroSpace/commands#focus
 alt-h = 'focus left'

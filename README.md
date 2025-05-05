@@ -14,4 +14,4 @@ I typically use the first letter of the app or context : alt+b (browser), alt+c 
 
 Now you have a clean, keyboard-based app launcher — and more screen space. On to the next level: window management.
 
-
+4. To change commands, ensure to reload the config through the icon in the menu bar.
