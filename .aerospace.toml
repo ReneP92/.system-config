@@ -223,3 +223,9 @@ run = ['move-node-to-workspace 6']
 5 = 'main'
 6 = 'secondary'
 7 = 'secondary'
+
+
+
+after-startup-command = [
+  'exec-and-forget borders active_color=0xffe1e3e4 inactive_color=0xff494d64 width=5.0'
+]
