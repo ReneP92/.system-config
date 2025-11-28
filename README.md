@@ -1,17 +1,45 @@
 # .system-config
 
 
-## Aerospace Setup
+# Terminal Setup (Wezterm)
 
-1. Install via `brew install --cask nikitabobko/tap/aerospace`.
-2. Open the `Aerospace` app.
-3. Copy the `.aerospace.toml` into the `~/` directory.
+## Install Wezterm
+```
+brew install --cask wezterm
+```
+First create the config file:
+```
+touch ~/.wezterm.lua
+```
+add code from root/wezterm.lua to ~/.wezterm.lua 
 
-To create an app shortcut, use exec-and-forget and map it to a keybinding:
 
-alt-b = 'exec-and-forget open -a /Applications/Brave\ Browser.app'
-I typically use the first letter of the app or context : alt+b (browser), alt+c (code) and alt+t (terminal)
+## Install Powerlevel 10k
 
-Now you have a clean, keyboard-based app launcher — and more screen space. On to the next level: window management.
 
-4. To change commands, ensure to reload the config through the icon in the menu bar.
+
+### tldr
+```
+brew install tlrc
+```
+```
+tldr eza
+```
+### eza (better ls)
+```
+brew install eza
+```
+
+
+### fzf (fuzzy finder)
+```
+brew install fzf
+```
+
+
+### bat (cat alternative)
+```
+brew install bat
+```
+
+
