@@ -70,6 +70,7 @@ brew install bat
 
 
 ### git-delta
+```
 brew install git-delta
-
+```
 git show 
