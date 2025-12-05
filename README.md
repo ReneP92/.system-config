@@ -74,3 +74,9 @@ brew install bat
 brew install git-delta
 ```
 git show 
+
+
+### tree
+```
+brew install tree
+```
