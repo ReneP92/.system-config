@@ -80,3 +80,8 @@ git show
 ```
 brew install tree
 ```
+
+### tmux
+```
+brew install tmux
+```
