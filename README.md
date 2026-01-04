@@ -100,6 +100,29 @@ brew install tree
 ```
 brew install tmux
 ```
+| command | Description | 
+|---|---|
+| `tmux` | Activate tmux session |
+| `tmux kill-session -a` | Kill all but current tmux session |
+
+Windows
+| command | Description | 
+|---|---|
+| `ctrl-a c` | Create a new window |
+| `crtl-a ,` | Rename current window |
+| `ctrl-a &` | Close current window |
+| `ctrl-a w` | List all current windows |
+| `ctrl-a p` | Go to previous window |
+| `ctrl-a n` | Go to next window |
+
+Panes
+| command | Description | 
+|---|---|
+| `ctrl-a \|` | Split pane vertically |
+| `ctrl-a -` | Split pane horizontally |
+| `ctrl-a →/←` | Navigate to left / right panel |
+| `ctrl-a ↑/↓` | Navigate to upper / lower panel |
+
 
 Install tpm (tmux plugin manager):
 
