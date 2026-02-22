@@ -4,20 +4,9 @@ local wezterm = require("wezterm")
 -- This will hold the configuration.
 local config = wezterm.config_builder()
 
--- This is where you actually apply your config choices
+config.send_composed_key_when_left_alt_is_pressed = false
+config.send_composed_key_when_right_alt_is_pressed = true
 
-config.font = wezterm.font("MesloLGS Nerd Font Mono")
-config.font_size = 14
-
-config.enable_tab_bar = false
-
-config.window_decorations = "RESIZE"
-config.window_background_opacity = 1.0
-config.macos_window_background_blur = 10
-
--- config.color_scheme = 'tokyonight_night'
-
--- coolnight colorscheme:
 config.colors = {
 	foreground = "#CBE0F0",
 	background = "#011423",
@@ -30,10 +19,14 @@ config.colors = {
 	brights = { "#214969", "#E52E2E", "#44FFB1", "#FFE073", "#A277FF", "#a277ff", "#24EAF7", "#24EAF7" },
 }
 
--- Appearance
-config.cursor_blink_rate = 0
-config.hide_tab_bar_if_only_one_tab = true
-config.macos_window_background_blur = 40
+config.font = wezterm.font("MesloLGS Nerd Font Mono")
+config.font_size = 14
+
+config.enable_tab_bar = false
+
+config.window_decorations = "RESIZE"
+-- config.window_background_opacity = 0.8
+-- config.macos_window_background_blur = 10
 
 -- and finally, return the configuration to wezterm
 return config
