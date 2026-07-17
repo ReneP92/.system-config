@@ -1,6 +1,6 @@
 # .system-config
 
-Personal config files. Every dot-prefixed file at the repo root is symlinked to the same path in `~` (e.g. `.zshrc` → `~/.zshrc`, `.claude/settings.json` → `~/.claude/settings.json`), so edits in the repo apply immediately and changes are tracked by git. Files inside directories like `.config/` and `.claude/` are linked individually, leaving unmanaged content in those directories untouched.
+Personal config files. Every dot-prefixed file at the repo root is symlinked to the same path in `~` (e.g. `.zshrc` → `~/.zshrc`, `.claude/settings.json` → `~/.claude/settings.json`), so edits in the repo apply immediately and changes are tracked by git. Files inside directories like `.config/` and `.claude/` are linked individually, leaving unmanaged content in those directories untouched — except for the directories in `LINK_DIRS` (currently `.config/nvim`), which are symlinked as a whole so new files inside them are covered automatically.
 
 ## Setup
 
@@ -18,7 +18,8 @@ The script:
   - [powerlevel10k](https://github.com/romkatv/powerlevel10k) → `~/powerlevel10k`
   - [fzf-git.sh](https://github.com/junegunn/fzf-git.sh) → `~/fzf-git.sh`
   - [tpm](https://github.com/tmux-plugins/tpm) → `~/.tmux/plugins/tpm`
-  - [nvim config](https://github.com/ReneP92/nvim) → `~/.config/nvim`
+
+The nvim config lives in this repo at `.config/nvim` and is linked as a whole directory to `~/.config/nvim`.
 
 Flags: `--dry-run` previews all actions without changing anything, `--no-brew` skips package installation. Re-running is safe — anything already linked is skipped.
 

@@ -63,15 +63,28 @@ clone_if_missing() {
   fi
 }
 
+# Directories linked as a whole: files added inside them later are picked
+# up automatically, without re-running this script.
+LINK_DIRS=(
+  ".config/nvim"
+)
+
 # --- Symlinks -----------------------------------------------------------
 # Every dot-prefixed file at the repo root is linked to the same relative
-# path in $HOME. Directories (e.g. .config) are never linked themselves --
-# their files are linked one by one, so unmanaged content in ~/.config
-# stays untouched.
+# path in $HOME. Apart from LINK_DIRS, directories (e.g. .config) are never
+# linked themselves -- their files are linked one by one, so unmanaged
+# content in ~/.config stays untouched.
 echo "==> Linking dotfiles from $REPO_DIR"
+
+prune_dirs=()
+for rel in "${LINK_DIRS[@]}"; do
+  link_file "$REPO_DIR/$rel" "$rel"
+  prune_dirs+=(-o -path "$REPO_DIR/$rel")
+done
+
 while IFS= read -r src; do
   link_file "$src" "${src#"$REPO_DIR"/}"
-done < <(find "$REPO_DIR" \( -name .git -o -name settings.local.json -o -name .gitignore -o -name .DS_Store \) -prune -o -type f -path "$REPO_DIR/.*" -print | sort)
+done < <(find "$REPO_DIR" \( -name .git -o -name settings.local.json -o -name .gitignore -o -name .DS_Store "${prune_dirs[@]}" \) -prune -o -type f -path "$REPO_DIR/.*" -print | sort)
 
 # --- Homebrew packages --------------------------------------------------
 if ! $NO_BREW; then
@@ -89,7 +102,6 @@ echo "==> Cloning external dependencies"
 clone_if_missing https://github.com/romkatv/powerlevel10k.git "$HOME/powerlevel10k"
 clone_if_missing https://github.com/junegunn/fzf-git.sh.git "$HOME/fzf-git.sh"
 clone_if_missing https://github.com/tmux-plugins/tpm.git "$HOME/.tmux/plugins/tpm"
-clone_if_missing https://github.com/ReneP92/nvim.git "$HOME/.config/nvim"
 
 # --- Summary ------------------------------------------------------------
 echo
