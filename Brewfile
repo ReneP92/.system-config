@@ -1,0 +1,13 @@
+brew "bat"
+brew "eza"
+brew "fd"
+brew "fzf"
+brew "git-delta"
+brew "neovim"
+brew "tlrc"
+brew "tmux"
+brew "tree"
+brew "zsh-autosuggestions"
+brew "zsh-syntax-highlighting"
+
+cask "wezterm"

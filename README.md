@@ -1,54 +1,40 @@
 # .system-config
 
-# Terminal Setup (Wezterm)
+Personal config files. Every dot-prefixed file at the repo root is symlinked to the same path in `~` (e.g. `.zshrc` → `~/.zshrc`), so edits in the repo apply immediately and changes are tracked by git. Files under `.config/` are linked individually, leaving unmanaged content in `~/.config` untouched.
 
-## Install Wezterm
-
-```
-brew install --cask wezterm
-```
-
-First create the config file:
+## Setup
 
 ```
-touch ~/.wezterm.lua
+git clone https://github.com/ReneP92/.system-config.git ~/Projects/personal/.system-config
+cd ~/Projects/personal/.system-config
+./bootstrap.sh
 ```
 
-add code from root/wezterm.lua to ~/.wezterm.lua
+The script:
 
-## Install Powerlevel 10k
+- symlinks all dotfiles into `~` — anything already there is moved to `~/.dotfiles-backup/<timestamp>/` first
+- installs all Homebrew packages from the `Brewfile` (wezterm, tmux, neovim, fzf, eza, bat, fd, git-delta, tree, tlrc, zsh-autosuggestions, zsh-syntax-highlighting)
+- clones external dependencies if missing:
+  - [powerlevel10k](https://github.com/romkatv/powerlevel10k) → `~/powerlevel10k`
+  - [fzf-git.sh](https://github.com/junegunn/fzf-git.sh) → `~/fzf-git.sh`
+  - [tpm](https://github.com/tmux-plugins/tpm) → `~/.tmux/plugins/tpm`
+  - [nvim config](https://github.com/ReneP92/nvim) → `~/.config/nvim`
 
-brew install powerlevel10k
+Flags: `--dry-run` previews all actions without changing anything, `--no-brew` skips package installation. Re-running is safe — anything already linked is skipped.
 
-### zsh-autosuggestions
+To add a new config file, place it in the repo (dot-prefixed, at the path it should have relative to `~`) and re-run `./bootstrap.sh`.
 
-brew install zsh-autosuggestions
+---
 
-### zsh-syntax-highlighting
-
-brew install zsh-syntax-highlighting
+# Tool reference
 
 ### tldr
-
-```
-brew install tlrc
-```
 
 ```
 tldr eza
 ```
 
-### eza (better ls)
-
-```
-brew install eza
-```
-
 ### fzf (fuzzy finder)
-
-```
-brew install fzf
-```
 
 | Example                              | Description                    |
 | ------------------------------------ | ------------------------------ |
@@ -60,53 +46,26 @@ brew install fzf
 | `Tab`                                | Mark a result                  |
 | `Shift-Tab`                          | Unmark a result                |
 
-### fd
-
-brew install fd
-
 ### fzf-git
-
-```
-git clone https://github.com/junegunn/fzf-git.sh.git
-```
 
 | Keybind   | Description                    |
 | --------- | ------------------------------ |
 | `CTRL-GF` | Look for git files with fzf    |
 | `CTRL-GB` | Look for git branches with fzf |
 
-### bat (cat alternative)
-
-```
-brew install bat
-```
-
 ### git-delta
 
-```
-brew install git-delta
-```
-
-git show
-
-### tree
-
-```
-brew install tree
-```
+Better diffs for `git show` / `git diff`.
 
 ### tmux
 
-```
-brew install tmux
-```
-| command | Description | 
+| command | Description |
 |---|---|
 | `tmux` | Activate tmux session |
 | `tmux kill-session -a` | Kill all but current tmux session |
 
 Windows
-| command | Description | 
+| command | Description |
 |---|---|
 | `ctrl-a c` | Create a new window |
 | `crtl-a ,` | Rename current window |
@@ -116,24 +75,9 @@ Windows
 | `ctrl-a n` | Go to next window |
 
 Panes
-| command | Description | 
+| command | Description |
 |---|---|
 | `ctrl-a \|` | Split pane vertically |
 | `ctrl-a -` | Split pane horizontally |
 | `ctrl-a →/←` | Navigate to left / right panel |
 | `ctrl-a ↑/↓` | Navigate to upper / lower panel |
-
-
-Install tpm (tmux plugin manager):
-
-```
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-```
-
-## Nvim Setup
-
-Clone the following repo into the set config location.
-
-```
-gh repo clone ReneP92/nvim >> ~/.config/
-```
