@@ -71,7 +71,7 @@ clone_if_missing() {
 echo "==> Linking dotfiles from $REPO_DIR"
 while IFS= read -r src; do
   link_file "$src" "${src#"$REPO_DIR"/}"
-done < <(find "$REPO_DIR" \( -name .git -o -name .claude -o -name .gitignore -o -name .DS_Store \) -prune -o -type f -path "$REPO_DIR/.*" -print | sort)
+done < <(find "$REPO_DIR" \( -name .git -o -name settings.local.json -o -name .gitignore -o -name .DS_Store \) -prune -o -type f -path "$REPO_DIR/.*" -print | sort)
 
 # --- Homebrew packages --------------------------------------------------
 if ! $NO_BREW; then

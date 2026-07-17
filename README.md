@@ -1,6 +1,6 @@
 # .system-config
 
-Personal config files. Every dot-prefixed file at the repo root is symlinked to the same path in `~` (e.g. `.zshrc` → `~/.zshrc`), so edits in the repo apply immediately and changes are tracked by git. Files under `.config/` are linked individually, leaving unmanaged content in `~/.config` untouched.
+Personal config files. Every dot-prefixed file at the repo root is symlinked to the same path in `~` (e.g. `.zshrc` → `~/.zshrc`, `.claude/settings.json` → `~/.claude/settings.json`), so edits in the repo apply immediately and changes are tracked by git. Files inside directories like `.config/` and `.claude/` are linked individually, leaving unmanaged content in those directories untouched.
 
 ## Setup
 
