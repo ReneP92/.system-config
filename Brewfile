@@ -10,4 +10,5 @@ brew "tree"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 
+cask "opensuperwhisper"
 cask "wezterm"
