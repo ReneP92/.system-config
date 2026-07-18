@@ -82,6 +82,11 @@ for rel in "${LINK_DIRS[@]}"; do
   prune_dirs+=(-o -path "$REPO_DIR/$rel")
 done
 
+# Non-dotfiles linked explicitly: shared agent instructions, wired into
+# each agent's expected global path.
+link_file "$REPO_DIR/AGENTS.md" "AGENTS.md"
+link_file "$REPO_DIR/AGENTS.md" ".claude/CLAUDE.md"
+
 while IFS= read -r src; do
   link_file "$src" "${src#"$REPO_DIR"/}"
 done < <(find "$REPO_DIR" \( -name .git -o -name settings.local.json -o -name .gitignore -o -name .DS_Store "${prune_dirs[@]}" \) -prune -o -type f -path "$REPO_DIR/.*" -print | sort)
