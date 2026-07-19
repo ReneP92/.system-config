@@ -53,6 +53,7 @@ return {
     lualine.setup({
       options = {
         theme = my_lualine_theme,
+        -- theme = "auto", -- alternative: follow the active colorscheme
       },
       sections = {
         lualine_x = {

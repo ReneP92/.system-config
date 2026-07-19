@@ -19,6 +19,9 @@ config.colors = {
 	brights = { "#214969", "#E52E2E", "#44FFB1", "#FFE073", "#A277FF", "#a277ff", "#24EAF7", "#24EAF7" },
 }
 
+-- alternative colorscheme (rose-pine), kept for switching back:
+-- config.color_scheme = "rose-pine-moon"
+
 config.font = wezterm.font("MesloLGS Nerd Font Mono")
 config.font_size = 14
 
