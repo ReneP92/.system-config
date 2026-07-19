@@ -1,38 +1,11 @@
 {
-  "model": "claude-fable-5",
-  "statusLine": {
-    "type": "command",
-    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); effort=$(echo \"$input\" | jq -r '.effort.level // empty'); [ -n \"$effort\" ] && model=\"$model ($effort)\"; used=$(echo \"$input\" | jq -r '.context_window.used_percentage // empty'); fh=$(echo \"$input\" | jq -r '.rate_limits.five_hour.used_percentage // empty'); wk=$(echo \"$input\" | jq -r '.rate_limits.seven_day.used_percentage // empty'); bar() { f=$(awk -v p=\"$1\" 'BEGIN{n=int(p/10+0.5); if(n>10)n=10; if(n<0)n=0; print n}'); printf '%*s' \"$f\" '' | tr ' ' '▓'; printf '%*s' \"$((10-f))\" '' | tr ' ' '░'; }; out=$model; [ -n \"$used\" ] && out=$(printf '%s | ctx: %.0f%%' \"$out\" \"$used\"); [ -n \"$fh\" ] && out=$(printf '%s | 5h: %s %.0f%%' \"$out\" \"$(bar \"$fh\")\" \"$fh\"); [ -n \"$wk\" ] && out=$(printf '%s | wk: %s %.0f%%' \"$out\" \"$(bar \"$wk\")\" \"$wk\"); printf '%s' \"$out\""
-  },
-  "tui": "fullscreen",
-  "theme": "dark-ansi",
   "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/tmux-claude-status.sh busy"
-          }
-        ]
-      }
-    ],
     "Notification": [
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "~/.claude/hooks/tmux-claude-status.sh waiting"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/tmux-claude-status.sh clear"
+            "command": "~/.claude/hooks/tmux-claude-status.sh waiting",
+            "type": "command"
           }
         ]
       }
@@ -41,11 +14,50 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "~/.claude/hooks/tmux-claude-status.sh clear"
+            "command": "~/.claude/hooks/tmux-claude-status.sh clear",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "bash '/Users/renepersau/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "~/.claude/hooks/tmux-claude-status.sh clear",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "~/.claude/hooks/tmux-claude-status.sh busy",
+            "type": "command"
           }
         ]
       }
     ]
-  }
+  },
+  "model": "claude-fable-5",
+  "statusLine": {
+    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); effort=$(echo \"$input\" | jq -r '.effort.level // empty'); [ -n \"$effort\" ] && model=\"$model ($effort)\"; used=$(echo \"$input\" | jq -r '.context_window.used_percentage // empty'); fh=$(echo \"$input\" | jq -r '.rate_limits.five_hour.used_percentage // empty'); wk=$(echo \"$input\" | jq -r '.rate_limits.seven_day.used_percentage // empty'); bar() { f=$(awk -v p=\"$1\" 'BEGIN{n=int(p/10+0.5); if(n>10)n=10; if(n<0)n=0; print n}'); printf '%*s' \"$f\" '' | tr ' ' '▓'; printf '%*s' \"$((10-f))\" '' | tr ' ' '░'; }; out=$model; [ -n \"$used\" ] && out=$(printf '%s | ctx: %.0f%%' \"$out\" \"$used\"); [ -n \"$fh\" ] && out=$(printf '%s | 5h: %s %.0f%%' \"$out\" \"$(bar \"$fh\")\" \"$fh\"); [ -n \"$wk\" ] && out=$(printf '%s | wk: %s %.0f%%' \"$out\" \"$(bar \"$wk\")\" \"$wk\"); printf '%s' \"$out\"",
+    "type": "command"
+  },
+  "theme": "dark-ansi",
+  "tui": "fullscreen"
 }
