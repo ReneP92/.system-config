@@ -41,7 +41,9 @@ else -- rose-pine
 	config.colors = { background = "#1f1d2e" }
 end
 
-config.font = wezterm.font("MesloLGS Nerd Font Mono")
+-- non-Mono variant: nerd font symbols may render up to double width
+-- instead of being squeezed into a single cell
+config.font = wezterm.font("MesloLGS Nerd Font")
 config.font_size = 14
 
 config.enable_tab_bar = false
