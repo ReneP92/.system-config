@@ -124,6 +124,7 @@ _fzf_comprun() {
 
 # ------------------------------------------ Others -------------------------------------------------
 export PATH="$PATH:$(go env GOPATH)/bin"
+export PATH="$PATH:$HOME/.scripts" # theme switcher etc. (linked from .system-config)
 
 
 # ---------------------------------------- claude code ----------------------------------------------

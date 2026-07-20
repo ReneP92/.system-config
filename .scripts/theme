@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# System-wide theme switcher for wezterm, tmux, and nvim.
+#
+#   theme              print the current theme
+#   theme <name>       switch (rose-pine | tokyonight)
+#
+# State lives in ~/.config/theme/current; each app reads it:
+#   - wezterm watches the file and recolors open windows immediately
+#   - tmux sources ~/.config/theme/tmux-current.conf (symlink set here)
+#   - nvim reads it on startup (running instances keep their theme)
+set -euo pipefail
+
+THEMES_DIR="$HOME/.tmux/themes"
+STATE_DIR="$HOME/.config/theme"
+
+current() {
+  cat "$STATE_DIR/current" 2>/dev/null || echo "rose-pine (default)"
+}
+
+if [ $# -eq 0 ]; then
+  current
+  exit 0
+fi
+
+name="$1"
+if [ ! -r "$THEMES_DIR/$name.conf" ]; then
+  echo "unknown theme: $name" >&2
+  echo "available: $(cd "$THEMES_DIR" && ls ./*.conf | sed 's|^\./||; s|\.conf$||' | tr '\n' ' ')" >&2
+  exit 1
+fi
+
+mkdir -p "$STATE_DIR"
+printf '%s\n' "$name" > "$STATE_DIR/current"
+ln -sf "$THEMES_DIR/$name.conf" "$STATE_DIR/tmux-current.conf"
+
+if [ -n "${TMUX:-}" ] || tmux info >/dev/null 2>&1; then
+  tmux source-file ~/.tmux.conf
+fi
+
+# nudge wezterm's config watcher so open windows recolor (the state file
+# itself isn't reliably watched; the main config file always is)
+touch ~/.wezterm.lua 2>/dev/null || true
+
+echo "theme: $name (nvim picks it up on next launch)"
