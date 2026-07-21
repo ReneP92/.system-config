@@ -13,11 +13,13 @@ cd ~/Projects/personal/.system-config
 The script:
 
 - symlinks all dotfiles into `~` — anything already there is moved to `~/.dotfiles-backup/<timestamp>/` first
-- installs all Homebrew packages from the `Brewfile` (wezterm, opensuperwhisper, tmux, neovim, fzf, eza, bat, fd, git-delta, tree, tlrc, zsh-autosuggestions, zsh-syntax-highlighting)
+- installs all Homebrew packages from the `Brewfile` (codex, wezterm, opensuperwhisper, tmux, neovim, fzf, eza, bat, fd, git-delta, tree, tlrc, zsh-autosuggestions, zsh-syntax-highlighting)
 - clones external dependencies if missing:
   - [powerlevel10k](https://github.com/romkatv/powerlevel10k) → `~/powerlevel10k`
   - [fzf-git.sh](https://github.com/junegunn/fzf-git.sh) → `~/fzf-git.sh`
   - [tpm](https://github.com/tmux-plugins/tpm) → `~/.tmux/plugins/tpm`
+- installs standalone binaries if missing:
+  - [treehouse](https://kunchenguid.github.io/treehouse) via `curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh`
 
 The nvim config lives in this repo at `.config/nvim` and is linked as a whole directory to `~/.config/nvim`.
 

@@ -108,6 +108,17 @@ clone_if_missing https://github.com/romkatv/powerlevel10k.git "$HOME/powerlevel1
 clone_if_missing https://github.com/junegunn/fzf-git.sh.git "$HOME/fzf-git.sh"
 clone_if_missing https://github.com/tmux-plugins/tpm.git "$HOME/.tmux/plugins/tpm"
 
+# --- Standalone binaries ------------------------------------------------
+echo "==> Installing standalone binaries"
+if command -v treehouse >/dev/null 2>&1; then
+  echo "  skip:   treehouse (already installed)"
+elif $DRY_RUN; then
+  echo "  [dry-run] curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh"
+else
+  echo "  install: treehouse"
+  curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh
+fi
+
 # --- Summary ------------------------------------------------------------
 echo
 echo "==> Done: $linked linked, $skipped skipped, $backed_up backed up"
