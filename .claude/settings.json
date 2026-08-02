@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/tmux-claude-status.sh waiting"
+            "command": "~/.tmux/agent-status.sh waiting"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/tmux-claude-status.sh clear"
+            "command": "~/.tmux/agent-status.sh clear"
           }
         ]
       }
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/tmux-claude-status.sh clear"
+            "command": "~/.tmux/agent-status.sh clear"
           }
         ]
       }
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/tmux-claude-status.sh busy"
+            "command": "~/.tmux/agent-status.sh busy"
           }
         ]
       }
