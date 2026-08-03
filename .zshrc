@@ -129,3 +129,6 @@ export PATH="$PATH:$HOME/.scripts" # theme switcher etc. (linked from .system-co
 
 # ---------------------------------------- claude code ----------------------------------------------
 alias cc="claude code"
+
+# ------------------------------------------ opencode ------------------------------------------------
+alias oc="opencode"
