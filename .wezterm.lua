@@ -50,5 +50,16 @@ config.window_decorations = "RESIZE"
 -- config.window_background_opacity = 0.8
 -- config.macos_window_background_blur = 10
 
+-- Send the CSI-u sequence for Shift+Enter (key 13, modifier 2) so TUIs like
+-- opencode, whose default input_newline includes shift+return, can tell it
+-- apart from a plain Enter and insert a newline instead of submitting.
+config.keys = {
+	{
+		key = "Enter",
+		mods = "SHIFT",
+		action = wezterm.action.SendString("\x1b[13;2u"),
+	},
+}
+
 -- and finally, return the configuration to wezterm
 return config
