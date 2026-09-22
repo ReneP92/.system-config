@@ -97,8 +97,14 @@ On first launch, `lazy.nvim` bootstraps automatically and installs plugins.
 | Mode | Keys | Action |
 | --- | --- | --- |
 | Insert | `jk` | Escape |
+| Insert | `<C-h>` / `<C-l>` | Move cursor left / right |
+| Insert | `<C-j>` / `<C-k>` | Move cursor down / up (completion menu first) |
 | Normal | `<leader>nh` | Clear search highlights |
 | Normal | `<leader>+` / `<leader>-` | Increment / decrement number |
+
+> `<C-j>` / `<C-k>` move the selection while the nvim-cmp popup is open and only
+> move the cursor once it is dismissed. Neovim keeps `<C-h>` (`0x08`) and `<BS>`
+> distinct, so Backspace is unaffected.
 
 ### Windows / tabs
 

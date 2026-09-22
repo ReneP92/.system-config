@@ -4,6 +4,12 @@ local keymap = vim.keymap -- for conciseness
 
 keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
 
+-- cursor navigation in insert mode
+keymap.set("i", "<C-h>", "<Left>", { desc = "Move cursor left" })
+keymap.set("i", "<C-j>", "<Down>", { desc = "Move cursor down" })
+keymap.set("i", "<C-k>", "<Up>", { desc = "Move cursor up" })
+keymap.set("i", "<C-l>", "<Right>", { desc = "Move cursor right" })
+
 keymap.set("n", "<leader>nh", ":nohl<CR>", { desc = "Clear search highlights" })
 
 -- increment/decrement numbers
