@@ -132,3 +132,6 @@ alias cc="claude code"
 
 # ------------------------------------------ opencode ------------------------------------------------
 alias oc="opencode"
+
+# bun completions
+[ -s "/Users/renepersau/.bun/_bun" ] && source "/Users/renepersau/.bun/_bun"
