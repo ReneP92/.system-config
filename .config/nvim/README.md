@@ -12,6 +12,7 @@ Leader key: `<Space>`
 - Optional but recommended:
   - `make` (builds `telescope-fzf-native` and LuaSnip’s optional regexp engine)
   - Node.js (for many LSP servers/tools like `tsserver`, `prettier`, `eslint`)
+  - `lazydocker` and Docker with a running daemon (for LazyDocker; install with `brew install lazydocker` on macOS)
 
 ## Install
 
@@ -187,6 +188,14 @@ Gitsigns:
 | Normal | `<leader>hp` | Preview hunk |
 | Normal | `<leader>hb` / `<leader>hB` | Blame line / toggle blame |
 | Normal | `<leader>hd` / `<leader>hD` | Diff this / diff vs `~` |
+
+### Docker
+
+| Mode | Keys | Action |
+| --- | --- | --- |
+| Normal | `<leader>ld` | LazyDocker |
+
+`:LazyDocker` opens or focuses the floating terminal. `:LazyDockerToggle` hides or restores the running session.
 
 ### Trouble
 
