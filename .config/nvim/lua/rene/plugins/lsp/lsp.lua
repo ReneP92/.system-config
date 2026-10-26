@@ -4,8 +4,9 @@ return {
   dependencies = {
     {
       "antosha417/nvim-lsp-file-operations",
-      -- TODO: unpin once upstream fixes the log rotation timer from 1303184, which
-      -- asserts the logfile exists and errors 30s after startup when nothing was logged yet
+      -- TODO: unpin once https://github.com/antosha417/nvim-lsp-file-operations/pull/64 is merged.
+      -- Since 1303184 the log rotation timer asserts the logfile exists and errors 30s after
+      -- startup when nothing was logged yet
       commit = "cab4c48a69d8b11301a8326013effc2f382144c0",
       config = true,
     },
