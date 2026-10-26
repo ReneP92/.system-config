@@ -53,6 +53,21 @@ link_file() {
   linked=$((linked + 1))
 }
 
+# Put brew on PATH if it is installed but not yet in this shell's PATH
+# (e.g. a fresh Mac where shellenv hasn't been set up). Returns 1 if
+# Homebrew is not installed at all.
+ensure_brew() {
+  command -v brew >/dev/null 2>&1 && return 0
+  local candidate
+  for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [ -x "$candidate" ]; then
+      eval "$("$candidate" shellenv)"
+      return 0
+    fi
+  done
+  return 1
+}
+
 clone_if_missing() {
   local url="$1" dest="$2"
   if [ -e "$dest" ]; then
@@ -68,6 +83,16 @@ clone_if_missing() {
 LINK_DIRS=(
   ".config/nvim"
 )
+
+# --- Preflight ----------------------------------------------------------
+# Fail before touching anything, so a missing Homebrew doesn't leave a
+# half-bootstrapped machine.
+if ! $NO_BREW && ! ensure_brew; then
+  echo "Error: Homebrew is not installed." >&2
+  echo "  Install it from https://brew.sh, then re-run $0" >&2
+  echo "  (or pass --no-brew to skip package installation)" >&2
+  exit 1
+fi
 
 # --- Symlinks -----------------------------------------------------------
 # Every dot-prefixed file at the repo root is linked to the same relative
@@ -94,12 +119,7 @@ done < <(find "$REPO_DIR" \( -name .git -o -name settings.local.json -o -name .g
 # --- Homebrew packages --------------------------------------------------
 if ! $NO_BREW; then
   echo "==> Installing Homebrew packages"
-  if command -v brew >/dev/null 2>&1; then
-    run brew bundle --file="$REPO_DIR/Brewfile"
-  else
-    echo "  Homebrew not found. Install it from https://brew.sh, then run:"
-    echo "  brew bundle --file=$REPO_DIR/Brewfile"
-  fi
+  run brew bundle --file="$REPO_DIR/Brewfile"
 fi
 
 # --- External repos -----------------------------------------------------
