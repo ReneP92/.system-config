@@ -10,10 +10,12 @@ cd ~/Projects/personal/.system-config
 ./bootstrap.sh
 ```
 
+Requires [Homebrew](https://brew.sh) unless `--no-brew` is passed - the script exits before changing anything if it is missing.
+
 The script:
 
 - symlinks all dotfiles into `~` — anything already there is moved to `~/.dotfiles-backup/<timestamp>/` first
-- installs all Homebrew packages from the `Brewfile` (codex, wezterm, opensuperwhisper, tmux, neovim, fzf, eza, bat, fd, git-delta, tree, tlrc, zsh-autosuggestions, zsh-syntax-highlighting)
+- installs all Homebrew packages from the `Brewfile` (codex, wezterm, maccy, rectangle, tmux, neovim, node, fzf, eza, bat, fd, gh, git-delta, tree, tlrc, zsh-autosuggestions, zsh-syntax-highlighting)
 - clones external dependencies if missing:
   - [powerlevel10k](https://github.com/romkatv/powerlevel10k) → `~/powerlevel10k`
   - [fzf-git.sh](https://github.com/junegunn/fzf-git.sh) → `~/fzf-git.sh`
