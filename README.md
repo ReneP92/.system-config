@@ -15,7 +15,7 @@ Requires [Homebrew](https://brew.sh) unless `--no-brew` is passed - the script e
 The script:
 
 - symlinks all dotfiles into `~` — anything already there is moved to `~/.dotfiles-backup/<timestamp>/` first
-- installs all Homebrew packages from the `Brewfile` (codex, wezterm, maccy, rectangle, tmux, neovim, node, fzf, eza, bat, fd, gh, git-delta, tree, tlrc, zsh-autosuggestions, zsh-syntax-highlighting)
+- installs all Homebrew packages from the `Brewfile` (codex, claude-code, docker-desktop, wezterm, maccy, rectangle, font-meslo-lg-nerd-font, tmux, herdr, neovim, node, go, fzf, ripgrep, eza, bat, fd, zoxide, gh, git-delta, lazygit, lazydocker, tree, tlrc, zsh-autosuggestions, zsh-syntax-highlighting)
 - clones external dependencies if missing:
   - [powerlevel10k](https://github.com/romkatv/powerlevel10k) → `~/powerlevel10k`
   - [fzf-git.sh](https://github.com/junegunn/fzf-git.sh) → `~/fzf-git.sh`
@@ -28,6 +28,24 @@ The nvim config lives in this repo at `.config/nvim` and is linked as a whole di
 Flags: `--dry-run` previews all actions without changing anything, `--no-brew` skips package installation. Re-running is safe — anything already linked is skipped.
 
 To add a new config file, place it in the repo (dot-prefixed, at the path it should have relative to `~`) and re-run `./bootstrap.sh`.
+
+## Switching themes
+
+WezTerm, tmux and nvim share one color theme, switched with the `theme` command (`.scripts/theme`, on `PATH` via `.zshrc`):
+
+```
+theme              # print the current theme
+theme tokyonight   # switch to tokyonight
+theme rose-pine    # switch to rose-pine (the default)
+```
+
+The selected name is stored in `~/.config/theme/current`, and each app reads it:
+
+- **WezTerm** watches the file and recolors open windows immediately
+- **tmux** is reloaded by the command and sources the matching palette from `.tmux/themes/` through the `~/.config/theme/tmux-current.conf` symlink
+- **nvim** reads it on startup, so already running instances keep their theme until restarted
+
+To add a theme, create `.tmux/themes/<name>.conf` (defining the same `C_*` variables as the existing ones), then add a matching branch to the color setup in `.wezterm.lua` and a colorscheme plugin with `cond = theme == "<name>"` in `.config/nvim/lua/rene/plugins/colorscheme.lua`.
 
 ---
 
