@@ -16,6 +16,7 @@ brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 
 cask "codex"
+cask "docker-desktop"
 cask "maccy"
 cask "rectangle"
 cask "wezterm"
