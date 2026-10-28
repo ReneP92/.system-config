@@ -20,6 +20,7 @@ The script:
   - [powerlevel10k](https://github.com/romkatv/powerlevel10k) → `~/powerlevel10k`
   - [fzf-git.sh](https://github.com/junegunn/fzf-git.sh) → `~/fzf-git.sh`
   - [tpm](https://github.com/tmux-plugins/tpm) → `~/.tmux/plugins/tpm`
+- installs the tmux plugins listed in `.tmux.conf` via tpm (vim-tmux-navigator, tmux-resurrect, tmux-continuum)
 - installs standalone binaries if missing:
   - [treehouse](https://kunchenguid.github.io/treehouse) via `curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh`
 

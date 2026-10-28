@@ -131,6 +131,12 @@ clone_if_missing https://github.com/romkatv/powerlevel10k.git "$HOME/powerlevel1
 clone_if_missing https://github.com/junegunn/fzf-git.sh.git "$HOME/fzf-git.sh"
 clone_if_missing https://github.com/tmux-plugins/tpm.git "$HOME/.tmux/plugins/tpm"
 
+# --- tmux plugins -------------------------------------------------------
+# tpm only clones the plugins listed in .tmux.conf when asked to; without
+# this, bindings like vim-tmux-navigator's C-h/j/k/l silently don't exist.
+echo "==> Installing tmux plugins"
+run "$HOME/.tmux/plugins/tpm/bin/install_plugins"
+
 # --- Standalone binaries ------------------------------------------------
 echo "==> Installing standalone binaries"
 if command -v treehouse >/dev/null 2>&1; then
