@@ -45,7 +45,9 @@ The selected name is stored in `~/.config/theme/current`, and each app reads it:
 - **tmux** is reloaded by the command and sources the matching palette from `.tmux/themes/` through the `~/.config/theme/tmux-current.conf` symlink
 - **nvim** reads it on startup, so already running instances keep their theme until restarted
 
-To add a theme, create `.tmux/themes/<name>.conf` (defining the same `C_*` variables as the existing ones), then add a matching branch to the color setup in `.wezterm.lua` and a colorscheme plugin with `cond = theme == "<name>"` in `.config/nvim/lua/rene/plugins/colorscheme.lua`.
+On macOS, switching themes also sets the desktop wallpaper to `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`, with matching images for `rose-pine` and `tokyonight`. Bootstrap links the wallpaper directory to `~/.config/theme/wallpapers`; run `./bootstrap.sh --no-brew` once to add the link on an existing setup. macOS may ask for permission to control System Events the first time the wallpaper is applied.
+
+To add a theme, create `.tmux/themes/<name>.conf` (defining the same `C_*` variables as the existing ones), then add a matching branch to the color setup in `.wezterm.lua` and a colorscheme plugin with `cond = theme == "<name>"` in `.config/nvim/lua/rene/plugins/colorscheme.lua`. Add its macOS wallpaper as `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`.
 
 ---
 

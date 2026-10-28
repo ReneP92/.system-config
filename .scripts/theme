@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# System-wide theme switcher for wezterm, tmux, and nvim.
+# System-wide theme switcher for wezterm, tmux, nvim, and the macOS wallpaper.
 #
 #   theme              print the current theme
 #   theme <name>       switch (rose-pine | tokyonight)
@@ -8,6 +8,7 @@
 #   - wezterm watches the file and recolors open windows immediately
 #   - tmux sources ~/.config/theme/tmux-current.conf (symlink set here)
 #   - nvim reads it on startup (running instances keep their theme)
+#   - macOS uses the matching bundled wallpaper
 set -euo pipefail
 
 THEMES_DIR="$HOME/.tmux/themes"
@@ -27,6 +28,22 @@ if [ ! -r "$THEMES_DIR/$name.conf" ]; then
   echo "unknown theme: $name" >&2
   echo "available: $(cd "$THEMES_DIR" && ls ./*.conf | sed 's|^\./||; s|\.conf$||' | tr '\n' ' ')" >&2
   exit 1
+fi
+
+if [ "$(uname -s)" = "Darwin" ]; then
+  wallpaper="$STATE_DIR/wallpapers/$name-dark-wallpaper-2560x1440.png"
+  if [ ! -r "$wallpaper" ]; then
+    echo "wallpaper not found: $wallpaper (run ./bootstrap.sh --no-brew)" >&2
+    exit 1
+  fi
+
+  osascript - "$wallpaper" <<'APPLESCRIPT'
+on run argv
+  tell application "System Events"
+    set picture of every desktop to item 1 of argv
+  end tell
+end run
+APPLESCRIPT
 fi
 
 mkdir -p "$STATE_DIR"
