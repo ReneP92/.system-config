@@ -13,6 +13,10 @@ set -euo pipefail
 
 THEMES_DIR="$HOME/.tmux/themes"
 STATE_DIR="$HOME/.config/theme"
+# ~/.scripts/theme is a symlink into the repo; resolve it to find the
+# bundled wallpapers without depending on another link in $HOME
+REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+WALLPAPERS_DIR="$REPO_DIR/assets/wallpapers"
 
 current() {
   cat "$STATE_DIR/current" 2>/dev/null || echo "rose-pine (default)"
@@ -31,9 +35,9 @@ if [ ! -r "$THEMES_DIR/$name.conf" ]; then
 fi
 
 if [ "$(uname -s)" = "Darwin" ]; then
-  wallpaper="$STATE_DIR/wallpapers/$name-dark-wallpaper-2560x1440.png"
+  wallpaper="$WALLPAPERS_DIR/$name-dark-wallpaper-2560x1440.png"
   if [ ! -r "$wallpaper" ]; then
-    echo "wallpaper not found: $wallpaper (run ./bootstrap.sh --no-brew)" >&2
+    echo "wallpaper not found: $wallpaper" >&2
     exit 1
   fi
 
