@@ -112,9 +112,6 @@ done
 link_file "$REPO_DIR/AGENTS.md" "AGENTS.md"
 link_file "$REPO_DIR/AGENTS.md" ".claude/CLAUDE.md"
 
-# Bundled wallpapers used by the theme switcher.
-link_file "$REPO_DIR/assets/wallpapers" ".config/theme/wallpapers"
-
 while IFS= read -r src; do
   link_file "$src" "${src#"$REPO_DIR"/}"
 done < <(find "$REPO_DIR" \( -name .git -o -name settings.local.json -o -name .gitignore -o -name .DS_Store "${prune_dirs[@]}" \) -prune -o -type f -path "$REPO_DIR/.*" -print | sort)
