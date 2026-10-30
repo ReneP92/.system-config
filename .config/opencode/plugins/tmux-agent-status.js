@@ -3,8 +3,8 @@
 // tmux status bar renders for Claude Code. State is pane-scoped; the helper
 // starts the spinner daemon on "busy" and clears the pane on "clear".
 //
-// Event mapping mirrors the herdr-agent-state.js plugin (the reference for
-// opencode's event names), collapsed to three indicator states.
+// Event mapping follows opencode's event names, collapsed to three indicator
+// states.
 import { execFile, execFileSync } from "node:child_process";
 
 const PANE = process.env.TMUX_PANE;
