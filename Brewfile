@@ -1,4 +1,5 @@
 brew "bat"
+brew "oven-sh/bun/bun"
 brew "eza"
 brew "fd"
 brew "fzf"

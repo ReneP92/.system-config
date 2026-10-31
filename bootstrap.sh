@@ -114,7 +114,7 @@ link_file "$REPO_DIR/AGENTS.md" ".claude/CLAUDE.md"
 
 while IFS= read -r src; do
   link_file "$src" "${src#"$REPO_DIR"/}"
-done < <(find "$REPO_DIR" \( -name .git -o -name settings.local.json -o -name .gitignore -o -name .DS_Store "${prune_dirs[@]}" \) -prune -o -type f -path "$REPO_DIR/.*" -print | sort)
+done < <(find "$REPO_DIR" \( -name .git -o -name settings.local.json -o -name 'settings.json.bak*' -o -name settings.json.lock -o -name 'settings.json.tmp.*' -o -name .gitignore -o -name .DS_Store "${prune_dirs[@]}" \) -prune -o -type f -path "$REPO_DIR/.*" -print | sort)
 
 # --- Homebrew packages --------------------------------------------------
 if ! $NO_BREW; then
@@ -127,6 +127,10 @@ echo "==> Cloning external dependencies"
 clone_if_missing https://github.com/romkatv/powerlevel10k.git "$HOME/powerlevel10k"
 clone_if_missing https://github.com/junegunn/fzf-git.sh.git "$HOME/fzf-git.sh"
 clone_if_missing https://github.com/tmux-plugins/tpm.git "$HOME/.tmux/plugins/tpm"
+
+# --- Agent skills -------------------------------------------------------
+echo "==> Installing gstack for Claude Code and OpenCode"
+run bash "$REPO_DIR/.scripts/setup-gstack"
 
 # --- tmux plugins -------------------------------------------------------
 # tpm only clones the plugins listed in .tmux.conf when asked to; without

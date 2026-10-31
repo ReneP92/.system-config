@@ -1,0 +1,4 @@
+settings.json.bak.*
+settings.json.bak-latest
+settings.json.lock/
+settings.json.tmp.*
