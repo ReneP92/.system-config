@@ -21,7 +21,7 @@ The script:
   - [fzf-git.sh](https://github.com/junegunn/fzf-git.sh) → `~/fzf-git.sh`
   - [tpm](https://github.com/tmux-plugins/tpm) → `~/.tmux/plugins/tpm`
 - installs the tmux plugins listed in `.tmux.conf` via tpm (vim-tmux-navigator, tmux-resurrect, tmux-continuum)
-- installs [Bun](https://bun.sh/) and [gstack](https://github.com/garrytan/gstack) globally for Claude Code and OpenCode
+- installs [Bun](https://bun.sh/) through Homebrew
 - installs standalone binaries if missing:
   - [treehouse](https://kunchenguid.github.io/treehouse) via `curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh`
 
@@ -30,34 +30,6 @@ The nvim config lives in this repo at `.config/nvim` and is linked as a whole di
 Flags: `--dry-run` previews all actions without changing anything, `--no-brew` skips package installation. Re-running is safe — anything already linked is skipped.
 
 To add a new config file, place it in the repo (dot-prefixed, at the path it should have relative to `~`) and re-run `./bootstrap.sh`.
-
-## gstack
-
-Bootstrap clones gstack into `~/.claude/skills/gstack` and runs its official installer for Claude Code and OpenCode. Bun is managed through Homebrew (`oven-sh/bun/bun`); gstack recommends Bun 1.4.2 or newer. With `--no-brew`, install Bun yourself first.
-
-Both tools use prefixed commands, for example:
-
-```text
-/gstack-office-hours
-/gstack-plan-eng-review
-/gstack-review
-/gstack-qa http://localhost:3000
-```
-
-Claude Code loads skills from `~/.claude/skills/`; OpenCode gets its native skills and commands under `~/.config/opencode/`. OpenCode reloads them automatically (or use `/reload`); start a new Claude Code session after installation. OpenCode support is experimental; gstack's safety skills are advisory there rather than hook-enforced.
-
-Repair or re-register both integrations with:
-
-```sh
-bash ~/.scripts/setup-gstack
-~/.claude/skills/gstack/bin/gstack-doctor
-```
-
-Bootstrap retains the current checkout on subsequent runs. Use `/gstack-upgrade` to update gstack and refresh both registered hosts. The installer builds the bundled browser and merges its hooks into the symlinked Claude settings, preserving existing hooks. Its settings backups are ignored by git and excluded from dotfile linking. Optional question-preference hooks use upstream's noninteractive defaults during bootstrap.
-
-The shared instructions resolve upstream's short OpenCode skill names to V2's `gstack-*` IDs. Upstream `setup --status` currently flags the unused `../qa/` branch of a conditional reference in prefixed Claude installs; the actual `../gstack-qa/` reference resolves. Bootstrap uses `gstack-doctor` for its final check.
-
-Outside reviews need an authenticated Codex CLI (`codex login`). The `Brewfile` includes Codex; these reviews are available once its CLI is on `PATH` and signed in.
 
 ## Switching themes
 

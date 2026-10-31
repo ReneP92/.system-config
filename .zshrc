@@ -130,9 +130,13 @@ export PATH="$PATH:$HOME/.scripts" # theme switcher etc. (linked from .system-co
 # ---------------------------------------- claude code ----------------------------------------------
 alias cc="claude code"
 
+# ---------------------------------------- cursor agent ---------------------------------------------
+alias ca="cursor agent"
+
 # ------------------------------------------ opencode ------------------------------------------------
 alias oc="opencode"
 
 # bun completions
 [ -s "/Users/renepersau/.bun/_bun" ] && source "/Users/renepersau/.bun/_bun"
+export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"

@@ -128,10 +128,6 @@ clone_if_missing https://github.com/romkatv/powerlevel10k.git "$HOME/powerlevel1
 clone_if_missing https://github.com/junegunn/fzf-git.sh.git "$HOME/fzf-git.sh"
 clone_if_missing https://github.com/tmux-plugins/tpm.git "$HOME/.tmux/plugins/tpm"
 
-# --- Agent skills -------------------------------------------------------
-echo "==> Installing gstack for Claude Code and OpenCode"
-run bash "$REPO_DIR/.scripts/setup-gstack"
-
 # --- tmux plugins -------------------------------------------------------
 # tpm only clones the plugins listed in .tmux.conf when asked to; without
 # this, bindings like vim-tmux-navigator's C-h/j/k/l silently don't exist.
@@ -147,6 +143,15 @@ elif $DRY_RUN; then
 else
   echo "  install: treehouse"
   curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh
+fi
+
+if command -v cursor-agent >/dev/null 2>&1 || [ -x "$HOME/.local/bin/cursor-agent" ]; then
+  echo "  skip:   Cursor CLI (already installed)"
+elif $DRY_RUN; then
+  echo "  [dry-run] curl https://cursor.com/install -fsS | bash"
+else
+  echo "  install: Cursor CLI"
+  curl https://cursor.com/install -fsS | bash
 fi
 
 # --- Summary ------------------------------------------------------------

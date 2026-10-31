@@ -11,9 +11,3 @@
   If something clearly looks off, even if it is not directly related to what you are doing, try to get it fixed along the way.
 - Apply that same high standard to engineering excellence: lint, test failures, and test flakiness.
   If you see one, even if it is not caused by what you are working on right now, still get it fixed.
-
-## gstack
-
-- Use the installed `gstack-*` skills for gstack workflows. In OpenCode, prefer the native OpenCode versions over Claude compatibility copies.
-- OpenCode skill IDs are directory names: when a gstack command requests a short name such as `review`, load `gstack-review` instead. Keep IDs already prefixed with `gstack-` unchanged.
-- Use `/gstack-browse` for web browsing. Never use `mcp__claude-in-chrome__*` tools.
