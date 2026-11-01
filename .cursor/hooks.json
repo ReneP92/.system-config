@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      { "command": "bash \"$HOME/.cursor/tmux-status.sh\" clear" }
+    ],
+    "beforeSubmitPrompt": [
+      { "command": "bash \"$HOME/.cursor/tmux-status.sh\" busy" }
+    ],
+    "stop": [
+      { "command": "bash \"$HOME/.cursor/tmux-status.sh\" clear", "loop_limit": null }
+    ],
+    "sessionEnd": [
+      { "command": "bash \"$HOME/.cursor/tmux-status.sh\" clear" }
+    ]
+  }
+}

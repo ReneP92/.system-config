@@ -64,7 +64,13 @@ After installing, use Claude Code's `/reload-skills` if the new directory is not
 
 These are locally maintained adaptations, not a full gstack installation. They use available native tools without a required browser package, external reviewer, telemetry or auto-updater. Upstream provenance and the MIT license are recorded in `.claude/skills/NOTICE.txt` and `.claude/skills/LICENSE.txt`. Review upstream improvements selectively and update the recorded revision when incorporating them.
 
-## OpenCode tmux status
+## Agent tmux status
+
+Claude Code, Cursor CLI and OpenCode share the per-pane tmux activity indicator: an animated spinner while busy, a bell when waiting for input, and no icon when idle.
+
+Cursor CLI uses `.cursor/hooks.json` and `.cursor/tmux-status.sh` to mark prompt submission as busy and clear the indicator on completion, cancellation, error or session exit. Session startup also clears stale state. Cursor currently exposes no permission-wait hook, so permission prompts retain the busy indicator. Bootstrap links both files into `~/.cursor/`; start a fresh Cursor CLI session after installing them.
+
+### OpenCode
 
 The V2 plugin in `.config/opencode/plugins/tmux-agent-status/` updates the shared tmux agent indicator from the terminal client. It aggregates open tabs (or the current session family when tabs are off), prioritizes pending questions/permissions, and clears the indicator on unload or exit. The shared server only provides plugin discovery, so other terminals cannot overwrite this pane's state. This integration targets the full-screen TUI.
 
