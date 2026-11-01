@@ -131,7 +131,7 @@ export PATH="$PATH:$HOME/.scripts" # theme switcher etc. (linked from .system-co
 alias cc="claude code"
 
 # ---------------------------------------- cursor agent ---------------------------------------------
-alias ca="cursor agent"
+alias ca="agent"
 
 # ------------------------------------------ opencode ------------------------------------------------
 alias oc="opencode"

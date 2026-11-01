@@ -6,12 +6,14 @@ BACKUP_DIR="$HOME/.dotfiles-backup/$(date +%Y-%m-%d_%H%M%S)"
 
 DRY_RUN=false
 NO_BREW=false
+SKILLS_ONLY=false
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
     --no-brew) NO_BREW=true ;;
+    --skills-only) SKILLS_ONLY=true ;;
     *)
-      echo "Usage: $0 [--dry-run] [--no-brew]" >&2
+      echo "Usage: $0 [--dry-run] [--no-brew] [--skills-only]" >&2
       exit 1
       ;;
   esac
@@ -84,6 +86,31 @@ LINK_DIRS=(
   ".config/nvim"
 )
 
+# Link skill folders rather than individual SKILL.md files: Cursor's skill
+# scanner skips file symlinks. Folder links also include new references.
+link_agent_skills() {
+  local src
+  for src in "$REPO_DIR/.claude/skills/"*; do
+    [ -e "$src" ] || continue
+    link_file "$src" "${src#"$REPO_DIR"/}"
+  done
+}
+
+# Install just the shared skills and OpenCode slash-command adapters. All
+# three agents discover ~/.claude/skills; their workflows have one source.
+if $SKILLS_ONLY; then
+  echo "==> Linking shared agent skills from $REPO_DIR"
+  link_agent_skills
+  while IFS= read -r src; do
+    link_file "$src" "${src#"$REPO_DIR"/}"
+  done < <(find "$REPO_DIR/.config/opencode/commands" -type f -print | sort)
+  echo "==> Done: $linked linked, $skipped skipped, $backed_up backed up"
+  if [ "$backed_up" -gt 0 ] && ! $DRY_RUN; then
+    echo "    Backups saved to $BACKUP_DIR"
+  fi
+  exit 0
+fi
+
 # --- Preflight ----------------------------------------------------------
 # Fail before touching anything, so a missing Homebrew doesn't leave a
 # half-bootstrapped machine.
@@ -101,7 +128,8 @@ fi
 # content in ~/.config stays untouched.
 echo "==> Linking dotfiles from $REPO_DIR"
 
-prune_dirs=()
+link_agent_skills
+prune_dirs=(-o -path "$REPO_DIR/.claude/skills")
 for rel in "${LINK_DIRS[@]}"; do
   link_file "$REPO_DIR/$rel" "$rel"
   prune_dirs+=(-o -path "$REPO_DIR/$rel")

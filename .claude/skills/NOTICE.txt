@@ -1,0 +1,32 @@
+Shared engineering skills adapted from gstack (MIT).
+Upstream: https://github.com/garrytan/gstack
+Reference revision: 4eae3ef27d0e7a3f6a10366f16cd985508df9133
+Upstream copyright and license: LICENSE.txt beside this notice.
+
+These are locally maintained adaptations, not an upstream gstack installation.
+The reference revision identifies the source reviewed, not an installed runtime.
+
+Source mapping at that revision:
+  plan-eng-review -> plan-eng-review/SKILL.md.tmpl and sections/review-sections.md.tmpl
+  eng-review     -> review/SKILL.md.tmpl and review/checklist.md
+  investigate    -> investigate/SKILL.md.tmpl
+  qa             -> qa/SKILL.md.tmpl
+  ship           -> ship/SKILL.md.tmpl
+  spec           -> spec/SKILL.md.tmpl
+  office-hours   -> office-hours/SKILL.md.tmpl
+  design-review  -> design-review/SKILL.md.tmpl
+  devex-review   -> devex-review/SKILL.md.tmpl
+  careful        -> careful/SKILL.md.tmpl
+  test-audit     -> test-audit/SKILL.md.tmpl
+
+Local adaptations use host-native tools, repository instructions and existing
+project checks. They do not require gstack binaries, its browser, telemetry,
+review ledgers, external models, automatic issue filing or automatic updates.
+Review and QA default to reporting; repairs follow the user's request.
+Ship follows repository release automation and never adds agent co-authorship.
+Careful is advisory in every host; no enforcement hooks are installed.
+
+Maintenance: review upstream changes selectively, update authored skills and
+this reference revision together, and recheck discovery and representative
+workflows on Claude Code, OpenCode and Cursor CLI. Preserve this notice and
+the license when redistributing the adapted collection.

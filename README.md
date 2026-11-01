@@ -1,6 +1,6 @@
 # .system-config
 
-Personal config files. Every dot-prefixed file at the repo root is symlinked to the same path in `~` (e.g. `.zshrc` → `~/.zshrc`, `.claude/settings.json` → `~/.claude/settings.json`), so edits in the repo apply immediately and changes are tracked by git. Files inside directories like `.config/` and `.claude/` are linked individually, leaving unmanaged content in those directories untouched — except for the directories in `LINK_DIRS` (currently `.config/nvim`), which are symlinked as a whole so new files inside them are covered automatically.
+Personal config files. Every dot-prefixed file at the repo root is symlinked to the same path in `~` (e.g. `.zshrc` → `~/.zshrc`, `.claude/settings.json` → `~/.claude/settings.json`), so edits in the repo apply immediately and changes are tracked by git. Files inside directories like `.config/` and `.claude/` are linked individually, leaving unmanaged content in those directories untouched - except for the directories in `LINK_DIRS` (currently `.config/nvim`) and each managed `.claude/skills/<name>` folder, which are symlinked as a whole so new files inside them are covered automatically.
 
 ## Setup
 
@@ -27,9 +27,42 @@ The script:
 
 The nvim config lives in this repo at `.config/nvim` and is linked as a whole directory to `~/.config/nvim`.
 
-Flags: `--dry-run` previews all actions without changing anything, `--no-brew` skips package installation. Re-running is safe — anything already linked is skipped.
+Flags: `--dry-run` previews all actions without changing anything, `--no-brew` skips package installation, and `--skills-only` installs just the shared agent skills and OpenCode commands without requiring Homebrew or running other setup steps. Re-running is safe - anything already linked is skipped.
 
 To add a new config file, place it in the repo (dot-prefixed, at the path it should have relative to `~`) and re-run `./bootstrap.sh`.
+
+## Shared agent skills
+
+Eleven gstack-inspired skills live in `.claude/skills/` and are linked into `~/.claude/skills/`. Claude Code, OpenCode and Cursor CLI discover that global directory. Each managed skill is linked as a whole folder because Cursor skips individually symlinked `SKILL.md` files. Other installed skills remain untouched. OpenCode slash-command adapters live in `.config/opencode/commands/`; the workflows themselves have one canonical copy.
+
+Install or refresh only these files:
+
+```sh
+./bootstrap.sh --skills-only --dry-run
+./bootstrap.sh --skills-only
+```
+
+| Command | Purpose |
+| --- | --- |
+| `/plan-eng-review` | Architecture, technical plans, edge cases and verification strategy |
+| `/eng-review` | Code correctness, security and production readiness |
+| `/investigate` | End-user reproduction and systematic root-cause debugging |
+| `/qa` | Functional testing for browsers, APIs, CLIs, jobs and webhooks |
+| `/ship` | Final validation, documentation and requested commit/PR delivery |
+| `/spec` | Code-grounded requirements and testable acceptance criteria |
+| `/office-hours` | Product discovery and competing technical approaches |
+| `/design-review` | Visual polish, accessibility and interaction quality |
+| `/devex-review` | Developer onboarding, tooling ergonomics and diagnostics |
+| `/careful` | Advisory review of potentially destructive operations |
+| `/test-audit` | Test value, duplication, flakiness and meaningful coverage |
+
+Use `/eng-review` instead of `/review` to avoid built-in command collisions, including Cursor's review command. Examples: `/qa test the import CLI`, `/eng-review --fix`, `/design-review --report-only`. Reviews and QA report by default; request fixes explicitly or use `--fix` where supported. `/ship` is explicitly invoked, and other skills can be selected by the agent when their descriptions fit the task.
+
+All skills respect the active agent/mode restrictions. Specs stay in chat unless a file or issue is requested; issue filing can use GitHub or Linear. Shipping follows repository-native release automation, does not manually edit changelogs/generated files, and never adds the agent as a co-author. `/careful` is guidance only, with no blocking hooks or persistent safety mode.
+
+After installing, use Claude Code's `/reload-skills` if the new directory is not yet visible, OpenCode's `/reload` if needed, or a fresh Cursor CLI session. OpenCode also supports explicit skill mentions such as `@eng-review`. Project definitions can shadow these skills according to each host's precedence rules.
+
+These are locally maintained adaptations, not a full gstack installation. They use available native tools without a required browser package, external reviewer, telemetry or auto-updater. Upstream provenance and the MIT license are recorded in `.claude/skills/NOTICE.txt` and `.claude/skills/LICENSE.txt`. Review upstream improvements selectively and update the recorded revision when incorporating them.
 
 ## Switching themes
 

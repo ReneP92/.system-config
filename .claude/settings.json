@@ -52,5 +52,38 @@
     }
   },
   "tui": "fullscreen",
-  "theme": "dark-ansi"
+  "theme": "dark-ansi",
+  "autoMode": {
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: Cloudflare (Workers static assets, deploy target for this repo)",
+      "**Repository visibility**: Private (ReneP92/website, confirmed via gh)",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: Local `.env*` files (gitignored: .env, .env.development.local, .env.test.local, .env.production.local, .env.local)",
+      "**Default / protected branches**: Default branch `main`; no classic protected branches listed and rulesets not queryable here — treat `main` as protected-by-convention since CI runs on push/PR to it and Cloudflare auto-deploys production from it",
+      "**CI/CD deploy targets**: Cloudflare Workers/Pages — deploy via `bunx wrangler deploy` (wrangler.jsonc), triggered by push to `main` (production) or other branches (preview URLs); `.github/workflows/ci.yml` runs `just verify` and `just e2e` on PRs and `main`",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine or CI runner with open internet",
+      "**Source control**: The trusted repo (github.com:ReneP92/website.git) and its remote(s) only",
+      "**Trusted internal domains**: renepersau.com, www.renepersau.com, renepersau.substack.com, renepersau-website.rene-persau.workers.dev (hosts contacted in this project's sessions)",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: api.cloudflare.com (Cloudflare API, contacted in this project's sessions)",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: local `.env*` files (gitignored) and any contact-form submission data handled by `/api/contact`; share only with audiences cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment",
+      "**Protected deployment namespaces / environments**: production deploys of this site (push to `main` triggers Cloudflare production deploy; `just deploy` runs verify then deploys from this machine)",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development (this personal website project — Astro/Tailwind static site on Cloudflare)",
+      "**Trusted repo**: github.com:ReneP92/website.git (private) — the working directory and its configured remote",
+      "**Org-specific CLIs**: None configured — `bunx`, `just`, `dig`, and `file` are used routinely in this project but are standard tooling, not org-specific"
+    ],
+    "allow": [
+      "$defaults",
+      "Bash(bunx wrangler:*) in ~/Projects/personal/website — routine deploy/build tooling per README",
+      "Bash(just:*) in ~/Projects/personal/website — justfile targets (dev, check, test, build, preview, verify, e2e, deploy, clean)"
+    ]
+  }
 }
