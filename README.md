@@ -1,6 +1,6 @@
 # .system-config
 
-Personal config files. Every dot-prefixed file at the repo root is symlinked to the same path in `~` (e.g. `.zshrc` → `~/.zshrc`, `.claude/settings.json` → `~/.claude/settings.json`), so edits in the repo apply immediately and changes are tracked by git. Files inside directories like `.config/` and `.claude/` are linked individually, leaving unmanaged content in those directories untouched - except for the directories in `LINK_DIRS` (currently `.config/nvim`) and each managed `.claude/skills/<name>` folder, which are symlinked as a whole so new files inside them are covered automatically.
+Personal config files. Every dot-prefixed file at the repo root is symlinked to the same path in `~` (e.g. `.zshrc` → `~/.zshrc`, `.claude/settings.json` → `~/.claude/settings.json`), so edits in the repo apply immediately and changes are tracked by git. Files inside directories like `.config/` and `.claude/` are linked individually, leaving unmanaged content in those directories untouched - except for the directories in `LINK_DIRS` (currently `.config/nvim` and `.config/opencode/plugins/tmux-agent-status`) and each managed `.claude/skills/<name>` folder, which are symlinked as a whole so new files inside them are covered automatically.
 
 ## Setup
 
@@ -63,6 +63,12 @@ All skills respect the active agent/mode restrictions. Specs stay in chat unless
 After installing, use Claude Code's `/reload-skills` if the new directory is not yet visible, OpenCode's `/reload` if needed, or a fresh Cursor CLI session. OpenCode also supports explicit skill mentions such as `@eng-review`. Project definitions can shadow these skills according to each host's precedence rules.
 
 These are locally maintained adaptations, not a full gstack installation. They use available native tools without a required browser package, external reviewer, telemetry or auto-updater. Upstream provenance and the MIT license are recorded in `.claude/skills/NOTICE.txt` and `.claude/skills/LICENSE.txt`. Review upstream improvements selectively and update the recorded revision when incorporating them.
+
+## OpenCode tmux status
+
+The V2 plugin in `.config/opencode/plugins/tmux-agent-status/` updates the shared tmux agent indicator from the terminal client. It aggregates open tabs (or the current session family when tabs are off), prioritizes pending questions/permissions, and clears the indicator on unload or exit. The shared server only provides plugin discovery, so other terminals cannot overwrite this pane's state. This integration targets the full-screen TUI.
+
+Re-run `./bootstrap.sh --no-brew` when upgrading from the old single-file plugin. Bootstrap removes the old managed symlink and links the new plugin directory. OpenCode reloads plugins automatically; `/reload` forces a refresh if needed. Run the status regression tests with `node --test tests/tmux-agent-status.test.mjs`.
 
 ## Switching themes
 

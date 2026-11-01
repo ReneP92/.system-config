@@ -84,6 +84,7 @@ clone_if_missing() {
 # up automatically, without re-running this script.
 LINK_DIRS=(
   ".config/nvim"
+  ".config/opencode/plugins/tmux-agent-status"
 )
 
 # Link skill folders rather than individual SKILL.md files: Cursor's skill
@@ -127,6 +128,12 @@ fi
 # linked themselves -- their files are linked one by one, so unmanaged
 # content in ~/.config stays untouched.
 echo "==> Linking dotfiles from $REPO_DIR"
+
+# Retire only our old V1 plugin link after moving to a V2 plugin directory.
+legacy_plugin=".config/opencode/plugins/tmux-agent-status.js"
+if [ -L "$HOME/$legacy_plugin" ] && [ "$(readlink "$HOME/$legacy_plugin")" = "$REPO_DIR/$legacy_plugin" ]; then
+  run unlink "$HOME/$legacy_plugin"
+fi
 
 link_agent_skills
 prune_dirs=(-o -path "$REPO_DIR/.claude/skills")
