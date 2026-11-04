@@ -48,17 +48,12 @@
   },
   "modelSettings": {
     "claude-opus-5-5": {
-      "effortLevel": "xhigh"
+      "effortLevel": "high"
     }
   },
   "tui": "fullscreen",
   "theme": "custom:active",
   "autoMode": {
-    "allow": [
-      "$defaults",
-      "Bash(bunx wrangler:*) in ~/Projects/personal/website — routine deploy/build tooling per README",
-      "Bash(just:*) in ~/Projects/personal/website — justfile targets (dev, check, test, build, preview, verify, e2e, deploy, clean)"
-    ],
     "environment": [
       "### Org-wide",
       "**Organization**: None configured",
@@ -84,6 +79,11 @@
       "**Primary use of Claude Code**: software development (this personal website project — Astro/Tailwind static site on Cloudflare)",
       "**Trusted repo**: github.com:ReneP92/website.git (private) — the working directory and its configured remote",
       "**Org-specific CLIs**: None configured — `bunx`, `just`, `dig`, and `file` are used routinely in this project but are standard tooling, not org-specific"
+    ],
+    "allow": [
+      "$defaults",
+      "Bash(bunx wrangler:*) in ~/Projects/personal/website — routine deploy/build tooling per README",
+      "Bash(just:*) in ~/Projects/personal/website — justfile targets (dev, check, test, build, preview, verify, e2e, deploy, clean)"
     ]
   }
 }
