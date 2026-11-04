@@ -1,7 +1,10 @@
 -- The active colorscheme follows the system-wide theme selected with the
 -- `theme` command (see .scripts/theme); all plugins stay installed and
 -- `cond` picks which one loads.
-local theme = require("rene.theme")()
+local theme_state = require("rene.theme")
+local theme = theme_state.name()
+-- translucent unless switched with `theme <name> opaque`
+local transparent = theme_state.transparent()
 
 return {
   {
@@ -16,21 +19,25 @@ return {
         extend_background_behind_borders = false,
         styles = {
           italic = false,
-          transparency = false,
+          transparency = transparent,
         },
         palette = {
           moon = {
             base = "#1f1d2e", -- slightly darker background (matches wezterm/tmux)
           },
         },
-        highlight_groups = {
-          -- hide the ~ end-of-buffer markers (fg matches the bg)
-          EndOfBuffer = { fg = "#1f1d2e" },
-          -- darker background for the nvim-tree sidebar
-          NvimTreeNormal = { bg = "#191724" },
-          NvimTreeNormalNC = { bg = "#191724" },
-          NvimTreeEndOfBuffer = { bg = "#191724", fg = "#191724" },
-        },
+        highlight_groups = transparent
+            and {
+              -- `transparency` leaves the winbar (dropbar's row) painted
+              WinBar = { bg = "NONE" },
+              WinBarNC = { link = "WinBar" },
+            }
+          or {
+            -- darker background for the nvim-tree sidebar
+            NvimTreeNormal = { bg = "#191724" },
+            NvimTreeNormalNC = { bg = "#191724" },
+            NvimTreeEndOfBuffer = { bg = "#191724", fg = "#191724" },
+          },
       })
 
       vim.cmd("colorscheme rose-pine")
@@ -46,7 +53,6 @@ return {
     priority = 1000,
     cond = theme == "tokyonight" or theme == "nightowl",
     config = function()
-      local transparent = false -- set to true if you would like to enable transparency
       local styles = {
         sidebars = transparent and "transparent" or "dark",
         floats = transparent and "transparent" or "dark",
@@ -57,6 +63,13 @@ return {
           style = "night",
           transparent = transparent,
           styles = styles,
+          -- `transparent` alone still paints the statusline/winbar/tabline
+          -- (and lualine/bufferline, which derive from them) with bg_statusline
+          on_colors = function(colors)
+            if transparent then
+              colors.bg_statusline = colors.none
+            end
+          end,
         })
         vim.cmd("colorscheme tokyonight")
         return

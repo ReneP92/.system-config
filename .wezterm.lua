@@ -7,21 +7,23 @@ local config = wezterm.config_builder()
 config.send_composed_key_when_left_alt_is_pressed = false
 config.send_composed_key_when_right_alt_is_pressed = true
 
--- The colorscheme follows the system-wide theme selected with the `theme`
--- command (see .scripts/theme); the state file is watched so switching
--- recolors open windows immediately.
-local theme_file = wezterm.home_dir .. "/.config/theme/current"
-wezterm.add_to_config_reload_watch_list(theme_file)
-
-local theme = "rose-pine"
-local f = io.open(theme_file, "r")
-if f then
-	local name = (f:read("*l") or ""):gsub("%s+", "")
-	f:close()
-	if name ~= "" then
-		theme = name
+-- The colorscheme and background follow the system-wide theme selected with
+-- the `theme` command (see .scripts/theme); the state files are watched so
+-- switching recolors open windows immediately.
+local function read_state(name, default)
+	local path = wezterm.home_dir .. "/.config/theme/" .. name
+	wezterm.add_to_config_reload_watch_list(path)
+	local f = io.open(path, "r")
+	if not f then
+		return default
 	end
+	local value = (f:read("*l") or ""):gsub("%s+", "")
+	f:close()
+	return value ~= "" and value or default
 end
+
+local theme = read_state("current", "rose-pine")
+local transparent = read_state("background", "transparent") ~= "opaque"
 
 -- nightowl: Night Owl navy backgrounds with a neon "coolnight" ANSI palette
 if theme == "nightowl" then
@@ -50,8 +52,14 @@ config.font_size = 14
 config.enable_tab_bar = false
 
 config.window_decorations = "RESIZE"
--- config.window_background_opacity = 0.8
--- config.macos_window_background_blur = 10
+-- Translucent, blurred background so the wallpaper shows through, unless
+-- switched with `theme <name> opaque`. Only cells painted with the default
+-- background are see-through, so nvim, tmux and fzf then use the terminal
+-- default instead of an explicit bg color.
+if transparent then
+	config.window_background_opacity = 0.85
+	config.macos_window_background_blur = 20
+end
 
 -- Send the CSI-u sequence for Shift+Enter (key 13, modifier 2) so TUIs like
 -- opencode, whose default input_newline includes shift+return, can tell it

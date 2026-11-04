@@ -81,13 +81,16 @@ Re-run `./bootstrap.sh --no-brew` when upgrading from the old single-file plugin
 WezTerm, tmux, nvim, fzf and Claude Code share one color theme, switched with the `theme` command (`.scripts/theme`, on `PATH` via `.zshrc`):
 
 ```
-theme              # print the current theme
-theme tokyonight   # switch to tokyonight (night)
-theme nightowl     # switch to nightowl
-theme rose-pine    # switch to rose-pine (the default)
+theme                    # print the current theme
+theme tokyonight         # switch to tokyonight (night)
+theme nightowl           # switch to nightowl
+theme rose-pine          # switch to rose-pine (the default)
+theme tokyonight opaque  # switch with solid instead of translucent backgrounds
 ```
 
-The selected name is stored in `~/.config/theme/current`, and each app reads it:
+By default the background is translucent: WezTerm's window is see-through and blurred, so the wallpaper shows through, and nvim, tmux and fzf paint the terminal's default background instead of their own. Adding `opaque` gives every app its solid theme background instead. Each switch sets both, so `theme <name>` without `opaque` goes back to translucent.
+
+The selected name is stored in `~/.config/theme/current` and the background (`transparent` or `opaque`) in `~/.config/theme/background`, and each app reads them:
 
 - **WezTerm** watches the file and recolors open windows immediately
 - **tmux** is reloaded by the command and sources the matching palette from `.tmux/themes/` through the `~/.config/theme/tmux-current.conf` symlink

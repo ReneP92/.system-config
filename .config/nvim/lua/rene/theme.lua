@@ -1,12 +1,27 @@
--- Returns the system-wide theme name, shared with wezterm and tmux.
+-- System-wide theme state, shared with wezterm, tmux and fzf.
 -- Written by the `theme` command (.scripts/theme in .system-config).
-return function()
-  local file = io.open(vim.fn.expand("~/.config/theme/current"), "r")
+local M = {}
+
+local function read(path)
+  local file = io.open(vim.fn.expand(path), "r")
   if not file then
-    return "rose-pine"
+    return ""
   end
-  local name = file:read("*l")
+  local value = file:read("*l")
   file:close()
-  name = name and vim.trim(name) or ""
+  return value and vim.trim(value) or ""
+end
+
+-- The theme name (rose-pine | nightowl | tokyonight), rose-pine by default.
+function M.name()
+  local name = read("~/.config/theme/current")
   return name ~= "" and name or "rose-pine"
 end
+
+-- Whether backgrounds should be left transparent so wezterm's translucent
+-- window shows through (the default); `theme <name> opaque` turns it off.
+function M.transparent()
+  return read("~/.config/theme/background") ~= "opaque"
+end
+
+return M

@@ -2,10 +2,13 @@
 # System-wide theme switcher for wezterm, tmux, nvim, fzf, Claude Code, and
 # the macOS wallpaper.
 #
-#   theme              print the current theme
-#   theme <name>       switch (rose-pine | nightowl | tokyonight)
+#   theme                   print the current theme
+#   theme <name>            switch (rose-pine | nightowl | tokyonight), with a
+#                           translucent background (the wallpaper shows through)
+#   theme <name> opaque     switch with solid backgrounds instead
 #
-# State lives in ~/.config/theme/current; each app reads it:
+# State lives in ~/.config/theme/current (theme name) and
+# ~/.config/theme/background (transparent | opaque); each app reads them:
 #   - wezterm watches the file and recolors open windows immediately
 #   - tmux sources ~/.config/theme/tmux-current.conf (symlink set here)
 #   - nvim reads it on startup (running instances keep their theme)
@@ -25,15 +28,33 @@ CLAUDE_THEMES_DIR="$REPO_DIR/assets/claude-themes"
 CLAUDE_ACTIVE="$HOME/.claude/themes/active.json"
 
 current() {
-  cat "$STATE_DIR/current" 2>/dev/null || echo "rose-pine (default)"
+  local name background
+  name="$(cat "$STATE_DIR/current" 2>/dev/null || echo "rose-pine (default)")"
+  background="$(cat "$STATE_DIR/background" 2>/dev/null || echo transparent)"
+  if [ "$background" = opaque ]; then
+    echo "$name (opaque)"
+  else
+    echo "$name"
+  fi
+}
+
+usage() {
+  echo "usage: theme [<name> [opaque]]" >&2
+  exit 1
 }
 
 if [ $# -eq 0 ]; then
   current
   exit 0
 fi
+[ $# -le 2 ] || usage
 
 name="$1"
+background=transparent
+if [ $# -eq 2 ]; then
+  [ "$2" = opaque ] || usage
+  background=opaque
+fi
 if [ ! -r "$THEMES_DIR/$name.conf" ]; then
   echo "unknown theme: $name" >&2
   echo "available: $(cd "$THEMES_DIR" && ls ./*.conf | sed 's|^\./||; s|\.conf$||' | tr '\n' ' ')" >&2
@@ -64,6 +85,7 @@ fi
 
 mkdir -p "$STATE_DIR"
 printf '%s\n' "$name" > "$STATE_DIR/current"
+printf '%s\n' "$background" > "$STATE_DIR/background"
 ln -sf "$THEMES_DIR/$name.conf" "$STATE_DIR/tmux-current.conf"
 
 # write via a temp file + rename so Claude Code's watcher never reads a
@@ -80,4 +102,4 @@ fi
 # itself isn't reliably watched; the main config file always is)
 touch ~/.wezterm.lua 2>/dev/null || true
 
-echo "theme: $name (nvim picks it up on next launch)"
+echo "theme: $(current) (nvim picks it up on next launch)"

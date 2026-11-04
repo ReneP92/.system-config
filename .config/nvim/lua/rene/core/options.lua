@@ -22,6 +22,10 @@ opt.cursorline = true
 -- turn on termguicolors for colorschemes to work
 -- (have to use iterm2 or any other true color terminal)
 opt.termguicolors = true
+
+-- hide the ~ end-of-buffer markers (colorschemes can't hide them by matching
+-- the bg color when the background is transparent)
+opt.fillchars:append({ eob = " " })
 opt.background = "dark" -- colorschemes that can be light or dark will be made dark
 opt.signcolumn = "yes" -- show sign column so that text doesn't shift
 
