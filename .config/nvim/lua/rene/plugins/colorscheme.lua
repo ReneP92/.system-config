@@ -36,10 +36,12 @@ return {
       vim.cmd("colorscheme rose-pine")
     end,
   },
+  -- nightowl: tokyonight.nvim "night" provides the syntax highlighting, with
+  -- its background and UI colors swapped for a Night Owl style navy palette
   {
     "folke/tokyonight.nvim",
     priority = 1000,
-    cond = theme == "tokyonight",
+    cond = theme == "nightowl",
     config = function()
       local transparent = false -- set to true if you would like to enable transparency
 

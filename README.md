@@ -82,7 +82,7 @@ WezTerm, tmux and nvim share one color theme, switched with the `theme` command 
 
 ```
 theme              # print the current theme
-theme tokyonight   # switch to tokyonight
+theme nightowl     # switch to nightowl
 theme rose-pine    # switch to rose-pine (the default)
 ```
 
@@ -92,7 +92,7 @@ The selected name is stored in `~/.config/theme/current`, and each app reads it:
 - **tmux** is reloaded by the command and sources the matching palette from `.tmux/themes/` through the `~/.config/theme/tmux-current.conf` symlink
 - **nvim** reads it on startup, so already running instances keep their theme until restarted
 
-On macOS, switching themes also sets the desktop wallpaper to `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`, with matching images for `rose-pine` and `tokyonight`. The `theme` script reads them straight from the repo, so no extra link is needed. macOS may ask for permission to control System Events the first time the wallpaper is applied.
+On macOS, switching themes also sets the desktop wallpaper to `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`, with matching images for `rose-pine` and `nightowl`. The `theme` script reads them straight from the repo, so no extra link is needed. macOS may ask for permission to control System Events the first time the wallpaper is applied.
 
 To add a theme, create `.tmux/themes/<name>.conf` (defining the same `C_*` variables as the existing ones), then add a matching branch to the color setup in `.wezterm.lua` and a colorscheme plugin with `cond = theme == "<name>"` in `.config/nvim/lua/rene/plugins/colorscheme.lua`. Add its macOS wallpaper as `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`.
 

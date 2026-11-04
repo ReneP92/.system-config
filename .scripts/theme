@@ -2,7 +2,7 @@
 # System-wide theme switcher for wezterm, tmux, nvim, and the macOS wallpaper.
 #
 #   theme              print the current theme
-#   theme <name>       switch (rose-pine | tokyonight)
+#   theme <name>       switch (rose-pine | nightowl)
 #
 # State lives in ~/.config/theme/current; each app reads it:
 #   - wezterm watches the file and recolors open windows immediately

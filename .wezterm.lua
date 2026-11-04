@@ -23,7 +23,8 @@ if f then
 	end
 end
 
-if theme == "tokyonight" then
+-- nightowl: Night Owl navy backgrounds with a neon "coolnight" ANSI palette
+if theme == "nightowl" then
 	config.colors = {
 		foreground = "#CBE0F0",
 		background = "#011423",
