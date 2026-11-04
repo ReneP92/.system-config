@@ -15,7 +15,7 @@
 #   - fzf colors are set by .zshrc (new shells)
 #   - Claude Code uses the custom theme ~/.claude/themes/active.json, copied
 #     here from assets/claude-themes/ (running sessions hot-reload it)
-#   - macOS uses the matching bundled wallpaper
+#   - macOS uses the matching bundled wallpaper on every display and Space
 set -euo pipefail
 
 STATE_DIR="$HOME/.config/theme"
@@ -82,6 +82,19 @@ on run argv
   end tell
 end run
 APPLESCRIPT
+
+  # System Events only reaches the Space currently visible on each display,
+  # so the other Spaces would keep the old wallpaper. Collapse what it wrote
+  # into the single "all Spaces and displays" entry that System Settings
+  # uses, then restart WallpaperAgent so every Space picks it up.
+  store="$HOME/Library/Application Support/com.apple.wallpaper/Store/Index.plist"
+  display="$(plutil -extract Displays raw -o - "$store" | head -n 1)"
+  entry="$(plutil -extract "Displays.$display" xml1 -o - "$store")"
+  plutil -replace AllSpacesAndDisplays -xml "$entry" -o "$store.tmp" "$store"
+  plutil -replace Displays -dictionary "$store.tmp"
+  plutil -replace Spaces -dictionary "$store.tmp"
+  mv "$store.tmp" "$store"
+  killall WallpaperAgent 2>/dev/null || true
 fi
 
 mkdir -p "$STATE_DIR"
