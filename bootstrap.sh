@@ -151,6 +151,22 @@ while IFS= read -r src; do
   link_file "$src" "${src#"$REPO_DIR"/}"
 done < <(find "$REPO_DIR" \( -name .git -o -name settings.local.json -o -name 'settings.json.bak*' -o -name settings.json.lock -o -name 'settings.json.tmp.*' -o -name .gitignore -o -name .DS_Store "${prune_dirs[@]}" \) -prune -o -type f -path "$REPO_DIR/.*" -print | sort)
 
+# --- Claude Code theme --------------------------------------------------
+# settings.json selects the custom theme "active", which the `theme` command
+# (.scripts/theme) rewrites on every switch. Seed it from the current theme
+# so a fresh machine has one before the first switch.
+echo "==> Seeding Claude Code theme"
+claude_active="$HOME/.claude/themes/active.json"
+if [ -e "$claude_active" ]; then
+  echo "  skip:   ~/.claude/themes/active.json (already exists)"
+else
+  current_theme="$(cat "$HOME/.config/theme/current" 2>/dev/null || echo rose-pine)"
+  [ -r "$REPO_DIR/assets/claude-themes/$current_theme.json" ] || current_theme=rose-pine
+  echo "  seed:   ~/.claude/themes/active.json ($current_theme)"
+  run mkdir -p "$(dirname "$claude_active")"
+  run cp "$REPO_DIR/assets/claude-themes/$current_theme.json" "$claude_active"
+fi
+
 # --- Homebrew packages --------------------------------------------------
 if ! $NO_BREW; then
   echo "==> Installing Homebrew packages"

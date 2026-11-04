@@ -78,7 +78,7 @@ Re-run `./bootstrap.sh --no-brew` when upgrading from the old single-file plugin
 
 ## Switching themes
 
-WezTerm, tmux, nvim and fzf share one color theme, switched with the `theme` command (`.scripts/theme`, on `PATH` via `.zshrc`):
+WezTerm, tmux, nvim, fzf and Claude Code share one color theme, switched with the `theme` command (`.scripts/theme`, on `PATH` via `.zshrc`):
 
 ```
 theme              # print the current theme
@@ -93,10 +93,11 @@ The selected name is stored in `~/.config/theme/current`, and each app reads it:
 - **tmux** is reloaded by the command and sources the matching palette from `.tmux/themes/` through the `~/.config/theme/tmux-current.conf` symlink
 - **nvim** reads it on startup, so already running instances keep their theme until restarted
 - **fzf** colors are set by `.zshrc`, so new shells pick up a switch
+- **Claude Code** uses the custom theme `custom:active` (set in `.claude/settings.json`). The command copies `assets/claude-themes/<name>.json` to `~/.claude/themes/active.json`, which running sessions hot-reload (sessions started before `~/.claude/themes/` existed need one restart). `.zshrc` sets `CLAUDE_CODE_TMUX_TRUECOLOR=1`, because Claude Code otherwise drops to 256-color approximations inside tmux
 
 On macOS, switching themes also sets the desktop wallpaper to `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`, with matching images for `rose-pine`, `nightowl` and `tokyonight`. The `theme` script reads them straight from the repo, so no extra link is needed. macOS may ask for permission to control System Events the first time the wallpaper is applied.
 
-To add a theme, create `.tmux/themes/<name>.conf` (defining the same `C_*` variables as the existing ones), then add a matching branch to the color setup in `.wezterm.lua` and a colorscheme plugin with `cond = theme == "<name>"` in `.config/nvim/lua/rene/plugins/colorscheme.lua` (or extend the `cond` of an existing spec when reusing its plugin, as `tokyonight` and `nightowl` do), and a branch to the fzf colors in `.zshrc`. Add its macOS wallpaper as `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`.
+To add a theme, create `.tmux/themes/<name>.conf` (defining the same `C_*` variables as the existing ones), then add a matching branch to the color setup in `.wezterm.lua` and a colorscheme plugin with `cond = theme == "<name>"` in `.config/nvim/lua/rene/plugins/colorscheme.lua` (or extend the `cond` of an existing spec when reusing its plugin, as `tokyonight` and `nightowl` do), a branch to the fzf colors in `.zshrc`, and a Claude Code palette as `assets/claude-themes/<name>.json` (a [custom theme](https://code.claude.com/docs/en/terminal-config.md#create-a-custom-theme) with `base` and `overrides`). Add its macOS wallpaper as `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`.
 
 ---
 

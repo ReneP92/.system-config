@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# System-wide theme switcher for wezterm, tmux, nvim, and the macOS wallpaper.
+# System-wide theme switcher for wezterm, tmux, nvim, fzf, Claude Code, and
+# the macOS wallpaper.
 #
 #   theme              print the current theme
 #   theme <name>       switch (rose-pine | nightowl | tokyonight)
@@ -8,6 +9,9 @@
 #   - wezterm watches the file and recolors open windows immediately
 #   - tmux sources ~/.config/theme/tmux-current.conf (symlink set here)
 #   - nvim reads it on startup (running instances keep their theme)
+#   - fzf colors are set by .zshrc (new shells)
+#   - Claude Code uses the custom theme ~/.claude/themes/active.json, copied
+#     here from assets/claude-themes/ (running sessions hot-reload it)
 #   - macOS uses the matching bundled wallpaper
 set -euo pipefail
 
@@ -17,6 +21,8 @@ STATE_DIR="$HOME/.config/theme"
 # bundled wallpapers without depending on another link in $HOME
 REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 WALLPAPERS_DIR="$REPO_DIR/assets/wallpapers"
+CLAUDE_THEMES_DIR="$REPO_DIR/assets/claude-themes"
+CLAUDE_ACTIVE="$HOME/.claude/themes/active.json"
 
 current() {
   cat "$STATE_DIR/current" 2>/dev/null || echo "rose-pine (default)"
@@ -31,6 +37,12 @@ name="$1"
 if [ ! -r "$THEMES_DIR/$name.conf" ]; then
   echo "unknown theme: $name" >&2
   echo "available: $(cd "$THEMES_DIR" && ls ./*.conf | sed 's|^\./||; s|\.conf$||' | tr '\n' ' ')" >&2
+  exit 1
+fi
+
+claude_theme="$CLAUDE_THEMES_DIR/$name.json"
+if [ ! -r "$claude_theme" ]; then
+  echo "Claude Code theme not found: $claude_theme" >&2
   exit 1
 fi
 
@@ -53,6 +65,12 @@ fi
 mkdir -p "$STATE_DIR"
 printf '%s\n' "$name" > "$STATE_DIR/current"
 ln -sf "$THEMES_DIR/$name.conf" "$STATE_DIR/tmux-current.conf"
+
+# write via a temp file + rename so Claude Code's watcher never reads a
+# half-written theme
+mkdir -p "$(dirname "$CLAUDE_ACTIVE")"
+cp "$claude_theme" "$CLAUDE_ACTIVE.tmp"
+mv "$CLAUDE_ACTIVE.tmp" "$CLAUDE_ACTIVE"
 
 if [ -n "${TMUX:-}" ] || tmux info >/dev/null 2>&1; then
   tmux source-file ~/.tmux.conf

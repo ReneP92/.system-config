@@ -136,6 +136,10 @@ export PATH="$PATH:$HOME/.scripts" # theme switcher etc. (linked from .system-co
 
 # ---------------------------------------- claude code ----------------------------------------------
 alias cc="claude code"
+# Claude Code clamps to 256 colors inside tmux unless told otherwise; tmux
+# passes truecolor through (RGB in .tmux.conf), so the custom theme's exact
+# hex colors render instead of 256-color approximations
+export CLAUDE_CODE_TMUX_TRUECOLOR=1
 
 # ---------------------------------------- cursor agent ---------------------------------------------
 alias ca="agent"

@@ -52,7 +52,7 @@
     }
   },
   "tui": "fullscreen",
-  "theme": "dark-ansi",
+  "theme": "custom:active",
   "autoMode": {
     "environment": [
       "### Org-wide",
