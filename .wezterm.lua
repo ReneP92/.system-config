@@ -36,6 +36,8 @@ if theme == "nightowl" then
 		ansi = { "#214969", "#E52E2E", "#44FFB1", "#FFE073", "#0FC5ED", "#a277ff", "#24EAF7", "#24EAF7" },
 		brights = { "#214969", "#E52E2E", "#44FFB1", "#FFE073", "#A277FF", "#a277ff", "#24EAF7", "#24EAF7" },
 	}
+elseif theme == "tokyonight" then
+	config.color_scheme = "tokyonight_night"
 else -- rose-pine
 	config.color_scheme = "rose-pine-moon"
 	-- slightly darker background than rose-pine moon's base (matches nvim/tmux)

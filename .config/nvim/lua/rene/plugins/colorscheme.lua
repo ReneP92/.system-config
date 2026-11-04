@@ -1,5 +1,5 @@
 -- The active colorscheme follows the system-wide theme selected with the
--- `theme` command (see .scripts/theme); both plugins stay installed and
+-- `theme` command (see .scripts/theme); all plugins stay installed and
 -- `cond` picks which one loads.
 local theme = require("rene.theme")()
 
@@ -36,14 +36,31 @@ return {
       vim.cmd("colorscheme rose-pine")
     end,
   },
-  -- nightowl: tokyonight.nvim "night" provides the syntax highlighting, with
-  -- its background and UI colors swapped for a Night Owl style navy palette
+  -- tokyonight.nvim backs two themes (one spec, since lazy.nvim merges specs
+  -- for the same plugin):
+  --   tokyonight: the stock "night" style
+  --   nightowl:   "night" syntax highlighting with its background and UI
+  --               colors swapped for a Night Owl style navy palette
   {
     "folke/tokyonight.nvim",
     priority = 1000,
-    cond = theme == "nightowl",
+    cond = theme == "tokyonight" or theme == "nightowl",
     config = function()
       local transparent = false -- set to true if you would like to enable transparency
+      local styles = {
+        sidebars = transparent and "transparent" or "dark",
+        floats = transparent and "transparent" or "dark",
+      }
+
+      if theme == "tokyonight" then
+        require("tokyonight").setup({
+          style = "night",
+          transparent = transparent,
+          styles = styles,
+        })
+        vim.cmd("colorscheme tokyonight")
+        return
+      end
 
       local bg = "#011628"
       local bg_dark = "#011423"
@@ -58,10 +75,7 @@ return {
       require("tokyonight").setup({
         style = "night",
         transparent = transparent,
-        styles = {
-          sidebars = transparent and "transparent" or "dark",
-          floats = transparent and "transparent" or "dark",
-        },
+        styles = styles,
         on_colors = function(colors)
           colors.bg = bg
           colors.bg_dark = transparent and colors.none or bg_dark

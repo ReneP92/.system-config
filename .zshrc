@@ -87,14 +87,21 @@ source ~/fzf-git.sh/fzf-git.sh
 
 
 # --- setup fzf theme ---
-fg="#CBE0F0"
-bg="#011628"
-bg_highlight="#143652"
-purple="#B388FF"
-blue="#06BCE4"
-cyan="#2CF9ED"
-
-export FZF_DEFAULT_OPTS="--color=fg:${fg},bg:${bg},hl:${purple},fg+:${fg},bg+:${bg_highlight},hl+:${purple},info:${blue},prompt:${cyan},pointer:${cyan},marker:${cyan},spinner:${cyan},header:${cyan}"
+# Follows the system-wide theme selected with the `theme` command (see
+# .scripts/theme); new shells pick up a switch.
+case "$(cat ~/.config/theme/current 2>/dev/null)" in
+  nightowl)
+    _fzf_colors="fg:#CBE0F0,bg:#011628,hl:#B388FF,fg+:#CBE0F0,bg+:#143652,hl+:#B388FF,info:#06BCE4,prompt:#2CF9ED,pointer:#2CF9ED,marker:#2CF9ED,spinner:#2CF9ED,header:#2CF9ED"
+    ;;
+  tokyonight)
+    _fzf_colors="fg:#c0caf5,bg:#1a1b26,hl:#2ac3de,fg+:#c0caf5,bg+:#283457,hl+:#2ac3de,info:#545c7e,prompt:#2ac3de,pointer:#ff007c,marker:#ff007c,spinner:#ff007c,header:#ff9e64"
+    ;;
+  *) # rose-pine (moon), the default
+    _fzf_colors="fg:#908caa,bg:#1f1d2e,hl:#ea9a97,fg+:#e0def4,bg+:#393552,hl+:#ea9a97,info:#9ccfd8,prompt:#908caa,pointer:#c4a7e7,marker:#eb6f92,spinner:#f6c177,header:#3e8fb0"
+    ;;
+esac
+export FZF_DEFAULT_OPTS="--color=${_fzf_colors}"
+unset _fzf_colors
 
 show_file_or_dir_preview="if [ -d {} ]; then eza --tree --color=always {} | head -200; else bat -n --color=always --line-range :500 {}; fi"
 
