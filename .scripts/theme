@@ -18,11 +18,12 @@
 #   - macOS uses the matching bundled wallpaper
 set -euo pipefail
 
-THEMES_DIR="$HOME/.tmux/themes"
 STATE_DIR="$HOME/.config/theme"
-# ~/.scripts/theme is a symlink into the repo; resolve it to find the
-# bundled wallpapers without depending on another link in $HOME
+# ~/.scripts/theme is a symlink into the repo; resolve it to read the tmux
+# palettes, wallpapers and Claude themes straight from the repo, so a newly
+# added theme works without re-running bootstrap.sh to link its files
 REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+THEMES_DIR="$REPO_DIR/.tmux/themes"
 WALLPAPERS_DIR="$REPO_DIR/assets/wallpapers"
 CLAUDE_THEMES_DIR="$REPO_DIR/assets/claude-themes"
 CLAUDE_ACTIVE="$HOME/.claude/themes/active.json"
@@ -57,7 +58,7 @@ if [ $# -eq 2 ]; then
 fi
 if [ ! -r "$THEMES_DIR/$name.conf" ]; then
   echo "unknown theme: $name" >&2
-  echo "available: $(cd "$THEMES_DIR" && ls ./*.conf | sed 's|^\./||; s|\.conf$||' | tr '\n' ' ')" >&2
+  echo "available: $(cd "$THEMES_DIR" && ls ./*.conf | sed 's|^\./||; s|\.conf$||' | paste -sd ' ' -)" >&2
   exit 1
 fi
 
