@@ -7,11 +7,13 @@ local config = wezterm.config_builder()
 config.send_composed_key_when_left_alt_is_pressed = false
 config.send_composed_key_when_right_alt_is_pressed = true
 
--- The colorscheme and background follow the system-wide theme selected with
--- the `theme` command (see .scripts/theme); the state files are watched so
+-- The colors and background follow the system-wide theme selected with the
+-- `theme` command (see .scripts/theme). The state files are watched, so
 -- switching recolors open windows immediately.
+local state_dir = wezterm.home_dir .. "/.config/theme/"
+
 local function read_state(name, default)
-	local path = wezterm.home_dir .. "/.config/theme/" .. name
+	local path = state_dir .. name
 	wezterm.add_to_config_reload_watch_list(path)
 	local f = io.open(path, "r")
 	if not f then
@@ -22,27 +24,49 @@ local function read_state(name, default)
 	return value ~= "" and value or default
 end
 
-local theme = read_state("current", "rose-pine")
+-- The active theme's palette: palette.conf links to themes/<name>.conf in
+-- the repo, a list of THEME_KEY="value" lines shared with tmux and fzf.
+local function read_palette()
+	local path = state_dir .. "palette.conf"
+	wezterm.add_to_config_reload_watch_list(path)
+	local f = io.open(path, "r")
+	if not f then
+		return nil
+	end
+	local palette = {}
+	for line in f:lines() do
+		local key, value = line:match('^THEME_([%w_]+)="([^"]*)"')
+		if key then
+			palette[key] = value
+		end
+	end
+	f:close()
+	return palette
+end
+
+local palette = read_palette()
 local transparent = read_state("background", "transparent") ~= "opaque"
 
--- nightowl: Night Owl navy backgrounds with a neon "coolnight" ANSI palette
-if theme == "nightowl" then
+if palette and palette.BG then
+	local ansi, brights = {}, {}
+	for i = 0, 7 do
+		ansi[i + 1] = palette["ANSI_" .. i]
+		brights[i + 1] = palette["ANSI_" .. (i + 8)]
+	end
 	config.colors = {
-		foreground = "#CBE0F0",
-		background = "#011423",
-		cursor_bg = "#47FF9C",
-		cursor_border = "#47FF9C",
-		cursor_fg = "#011423",
-		selection_bg = "#033259",
-		selection_fg = "#CBE0F0",
-		ansi = { "#214969", "#E52E2E", "#44FFB1", "#FFE073", "#0FC5ED", "#a277ff", "#24EAF7", "#24EAF7" },
-		brights = { "#214969", "#E52E2E", "#44FFB1", "#FFE073", "#A277FF", "#a277ff", "#24EAF7", "#24EAF7" },
+		foreground = palette.FG,
+		background = palette.BG,
+		cursor_bg = palette.CURSOR_BG,
+		cursor_border = palette.CURSOR_BG,
+		cursor_fg = palette.CURSOR_FG,
+		selection_bg = palette.SELECTION_BG,
+		selection_fg = palette.SELECTION_FG,
+		ansi = ansi,
+		brights = brights,
 	}
-elseif theme == "tokyonight" then
-	config.color_scheme = "tokyonight_night"
-else -- rose-pine
+else
+	-- no theme selected yet (bootstrap.sh seeds palette.conf): rose-pine
 	config.color_scheme = "rose-pine-moon"
-	-- slightly darker background than rose-pine moon's base (matches nvim/tmux)
 	config.colors = { background = "#1f1d2e" }
 end
 
@@ -53,7 +77,7 @@ config.enable_tab_bar = false
 
 config.window_decorations = "RESIZE"
 -- Translucent, blurred background so the wallpaper shows through, unless
--- switched with `theme <name> opaque`. Only cells painted with the default
+-- switched with `theme background opaque`. Only cells painted with the default
 -- background are see-through, so nvim, tmux and fzf then use the terminal
 -- default instead of an explicit bg color.
 if transparent then

@@ -135,6 +135,17 @@ if [ -L "$HOME/$legacy_plugin" ] && [ "$(readlink "$HOME/$legacy_plugin")" = "$R
   run unlink "$HOME/$legacy_plugin"
 fi
 
+# Retire our old tmux palette links; the palettes moved to themes/ in the
+# repo, read through ~/.config/theme/palette.conf (seeded below).
+for legacy_palette in "$HOME"/.tmux/themes/*.conf; do
+  if [ -L "$legacy_palette" ] && [ "$(readlink "$legacy_palette")" = "$REPO_DIR/.tmux/themes/$(basename "$legacy_palette")" ]; then
+    run unlink "$legacy_palette"
+  fi
+done
+if [ -d "$HOME/.tmux/themes" ] && [ -z "$(ls -A "$HOME/.tmux/themes")" ]; then
+  run rmdir "$HOME/.tmux/themes"
+fi
+
 link_agent_skills
 prune_dirs=(-o -path "$REPO_DIR/.claude/skills")
 for rel in "${LINK_DIRS[@]}"; do
@@ -151,11 +162,11 @@ while IFS= read -r src; do
   link_file "$src" "${src#"$REPO_DIR"/}"
 done < <(find "$REPO_DIR" \( -name .git -o -name settings.local.json -o -name 'settings.json.bak*' -o -name settings.json.lock -o -name 'settings.json.tmp.*' -o -name .gitignore -o -name .DS_Store "${prune_dirs[@]}" \) -prune -o -type f -path "$REPO_DIR/.*" -print | sort)
 
-# --- Claude Code theme --------------------------------------------------
-# settings.json selects the custom theme "active", which the `theme` command
-# (.scripts/theme) rewrites on every switch. Seed it from the current theme
-# so a fresh machine has one before the first switch.
-echo "==> Seeding Claude Code theme"
+# --- Theme --------------------------------------------------------------
+# Claude Code's settings.json selects the custom theme "active", which the
+# `theme` command (.scripts/theme) rewrites on every switch. Seed it from the
+# current theme so a fresh machine has one before the first switch.
+echo "==> Seeding the theme"
 claude_active="$HOME/.claude/themes/active.json"
 if [ -e "$claude_active" ]; then
   echo "  skip:   ~/.claude/themes/active.json (already exists)"
@@ -165,6 +176,21 @@ else
   echo "  seed:   ~/.claude/themes/active.json ($current_theme)"
   run mkdir -p "$(dirname "$claude_active")"
   run cp "$REPO_DIR/assets/claude-themes/$current_theme.json" "$claude_active"
+fi
+
+# wezterm, tmux and fzf read the active palette through this link, which
+# the `theme` command repoints on every switch. Seed it the same way.
+palette_link="$HOME/.config/theme/palette.conf"
+if [ -e "$palette_link" ]; then
+  echo "  skip:   ~/.config/theme/palette.conf (already exists)"
+else
+  current_theme="$(cat "$HOME/.config/theme/current" 2>/dev/null || echo rose-pine)"
+  [ -r "$REPO_DIR/themes/$current_theme.conf" ] || current_theme=rose-pine
+  echo "  seed:   ~/.config/theme/palette.conf ($current_theme)"
+  run mkdir -p "$(dirname "$palette_link")"
+  run ln -sfn "$REPO_DIR/themes/$current_theme.conf" "$palette_link"
+  # the palette used to be linked here for tmux alone
+  run rm -f "$HOME/.config/theme/tmux-current.conf"
 fi
 
 # --- Homebrew packages --------------------------------------------------

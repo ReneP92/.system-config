@@ -29,6 +29,15 @@ setopt hist_verify
 # ---------------------------------------------------------------------------------------------------
 
 
+# ---------------------------------------- completion -----------------------------------------------
+# macOS's /bin/zsh doesn't search Homebrew's completions (git, gh, brew, ...)
+# on its own. compinit has to run before anything below calls compdef (the
+# `theme` completion, bun).
+fpath=(/opt/homebrew/share/zsh/site-functions $fpath)
+autoload -Uz compinit && compinit
+# ---------------------------------------------------------------------------------------------------
+
+
 source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 # completion using arrow keys (based on history)
@@ -88,26 +97,16 @@ source ~/fzf-git.sh/fzf-git.sh
 
 # --- setup fzf theme ---
 # Follows the system-wide theme selected with the `theme` command (see
-# .scripts/theme); new shells pick up a switch. With a translucent theme the
-# background is -1 (the terminal default), so wezterm's window shows through;
-# `theme <name> opaque` uses the theme's solid background instead.
-case "$(cat ~/.config/theme/current 2>/dev/null)" in
-  nightowl)
-    _fzf_bg="#011628"
-    _fzf_colors="fg:#CBE0F0,hl:#B388FF,fg+:#CBE0F0,bg+:#143652,hl+:#B388FF,info:#06BCE4,prompt:#2CF9ED,pointer:#2CF9ED,marker:#2CF9ED,spinner:#2CF9ED,header:#2CF9ED"
-    ;;
-  tokyonight)
-    _fzf_bg="#1a1b26"
-    _fzf_colors="fg:#c0caf5,hl:#2ac3de,fg+:#c0caf5,bg+:#283457,hl+:#2ac3de,info:#545c7e,prompt:#2ac3de,pointer:#ff007c,marker:#ff007c,spinner:#ff007c,header:#ff9e64"
-    ;;
-  *) # rose-pine (moon), the default
-    _fzf_bg="#1f1d2e"
-    _fzf_colors="fg:#908caa,hl:#ea9a97,fg+:#e0def4,bg+:#393552,hl+:#ea9a97,info:#9ccfd8,prompt:#908caa,pointer:#c4a7e7,marker:#eb6f92,spinner:#f6c177,header:#3e8fb0"
-    ;;
-esac
-[ "$(cat ~/.config/theme/background 2>/dev/null)" = opaque ] || _fzf_bg=-1
-export FZF_DEFAULT_OPTS="--color=bg:${_fzf_bg},gutter:${_fzf_bg},${_fzf_colors}"
-unset _fzf_bg _fzf_colors
+# .scripts/theme); new shells pick up a switch. The colors come from the
+# active palette (themes/<name>.conf in the repo). With a translucent theme
+# the background is -1 (the terminal default), so wezterm's window shows
+# through; `theme background opaque` uses the theme's solid background.
+if [ -r ~/.config/theme/palette.conf ]; then
+  source ~/.config/theme/palette.conf
+  [ "$(command cat ~/.config/theme/background 2>/dev/null)" = opaque ] || THEME_FZF_BG=-1
+  export FZF_DEFAULT_OPTS="--color=bg:${THEME_FZF_BG},gutter:${THEME_FZF_BG},${THEME_FZF_COLORS}"
+  unset -m 'THEME_*'
+fi
 
 show_file_or_dir_preview="if [ -d {} ]; then eza --tree --color=always {} | head -200; else bat -n --color=always --line-range :500 {}; fi"
 
@@ -138,6 +137,38 @@ _fzf_comprun() {
 # ------------------------------------------ Others -------------------------------------------------
 export PATH="$PATH:$(go env GOPATH)/bin"
 export PATH="$PATH:$HOME/.scripts" # theme switcher etc. (linked from .system-config)
+
+# completion for the `theme` command: subcommands, theme names and flags
+_theme() {
+  local -a subcommands
+  subcommands=(
+    'pick:choose a theme interactively with a live preview'
+    'set:switch to a theme'
+    'background:switch between translucent and opaque backgrounds'
+    'current:print the current theme'
+    'list:list the available themes'
+    'preview:render the preview of a theme'
+    'help:show usage'
+  )
+  if (( CURRENT == 2 )); then
+    _describe -t commands 'theme command' subcommands
+    _values 'theme' ${(f)"$(theme list --names 2>/dev/null)"}
+    return
+  fi
+  case "${words[2]}" in
+    set)
+      if (( CURRENT == 3 )); then
+        _values 'theme' ${(f)"$(theme list --names 2>/dev/null)"}
+      elif (( CURRENT == 4 )); then
+        _values 'background' --opaque --translucent
+      fi
+      ;;
+    preview) (( CURRENT == 3 )) && _values 'theme' ${(f)"$(theme list --names 2>/dev/null)"} ;;
+    background) (( CURRENT == 3 )) && _values 'background' opaque translucent toggle ;;
+    list) (( CURRENT == 3 )) && _values 'option' --names ;;
+  esac
+}
+(( $+functions[compdef] )) && compdef _theme theme
 
 
 # ---------------------------------------- claude code ----------------------------------------------

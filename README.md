@@ -14,8 +14,8 @@ Requires [Homebrew](https://brew.sh) unless `--no-brew` is passed - the script e
 
 The script:
 
-- symlinks all dotfiles into `~` — anything already there is moved to `~/.dotfiles-backup/<timestamp>/` first
-- installs all Homebrew packages from the `Brewfile` (codex, claude-code, docker-desktop, wezterm, maccy, rectangle, font-meslo-lg-nerd-font, tmux, neovim, node, go, fzf, ripgrep, eza, bat, fd, zoxide, gh, git-delta, lazygit, lazydocker, tree, tlrc, zsh-autosuggestions, zsh-syntax-highlighting)
+- symlinks all dotfiles into `~` - anything already there is moved to `~/.dotfiles-backup/<timestamp>/` first
+- installs all Homebrew packages from the `Brewfile` (codex, claude-code, docker-desktop, wezterm, maccy, rectangle, font-meslo-lg-nerd-font, tmux, neovim, node, go, fzf, ripgrep, eza, bat, chafa, fd, zoxide, gh, git-delta, lazygit, lazydocker, tree, tlrc, zsh-autosuggestions, zsh-syntax-highlighting)
 - clones external dependencies if missing:
   - [powerlevel10k](https://github.com/romkatv/powerlevel10k) → `~/powerlevel10k`
   - [fzf-git.sh](https://github.com/junegunn/fzf-git.sh) → `~/fzf-git.sh`
@@ -78,29 +78,43 @@ Re-run `./bootstrap.sh --no-brew` when upgrading from the old single-file plugin
 
 ## Switching themes
 
-WezTerm, tmux, nvim, fzf and Claude Code share one color theme, switched with the `theme` command (`.scripts/theme`, on `PATH` via `.zshrc`):
+WezTerm, tmux, nvim, fzf, Claude Code and the macOS wallpaper share one color theme, switched with the `theme` command (`.scripts/theme`, on `PATH` via `.zshrc`). Run plain `theme` to pick one interactively:
+
+- the list shows the available themes, starting on the current one
+- the preview shows each theme's colors on a mock tmux status bar, code and fzf list, its 16 terminal colors and its wallpaper (thumbnails need `chafa`, from the `Brewfile`)
+- the whole terminal window and the tmux status bar recolor live while moving through the list
+- `enter` switches, `esc` restores the colors you had, and `ctrl-b` flips between a translucent and an opaque background
+
+The other commands (`theme help` lists them, and zsh completes them when its completion system is loaded):
 
 ```
-theme                    # print the current theme
-theme tokyonight         # switch to tokyonight (night)
-theme nightowl           # switch to nightowl
-theme rose-pine          # switch to rose-pine (the default)
-theme tokyonight opaque  # switch with solid instead of translucent backgrounds
+theme set tokyonight             # switch theme, keeping the background
+theme tokyonight                 # the same, shorter
+theme set nightowl --opaque      # switch and use solid backgrounds
+theme background toggle          # flip translucent / opaque (also: opaque, translucent)
+theme current                    # print the current theme
+theme list                       # list the themes, marking the current one
+theme preview rose-pine          # render a theme's preview in the terminal
 ```
 
-By default the background is translucent: WezTerm's window is see-through and blurred, so the wallpaper shows through, and nvim, tmux and fzf paint the terminal's default background instead of their own. Adding `opaque` gives every app its solid theme background instead. Each switch sets both, so `theme <name>` without `opaque` goes back to translucent.
+By default the background is translucent: WezTerm's window is see-through and blurred, so the wallpaper shows through, and nvim, tmux and fzf paint the terminal's default background instead of their own. Opaque gives every app its solid theme background instead. A switch keeps the current background unless `--opaque` or `--translucent` is given.
 
-The selected name is stored in `~/.config/theme/current` and the background (`transparent` or `opaque`) in `~/.config/theme/background`, and each app reads them:
+Each theme is one palette file, `themes/<name>.conf`, the single source of truth for the terminal colors, the tmux status bar roles and the fzf colors. It holds `THEME_KEY="value"` lines, so bash can source it, tmux can `source-file` it and `.wezterm.lua` parses it. The command links the active one to `~/.config/theme/palette.conf` and stores the name in `~/.config/theme/current` and the background (`transparent` or `opaque`) in `~/.config/theme/background`. Each app reads them:
 
-- **WezTerm** watches the file and recolors open windows immediately
-- **tmux** is reloaded by the command and sources the matching palette from `.tmux/themes/` through the `~/.config/theme/tmux-current.conf` symlink
-- **nvim** reads it on startup, so already running instances keep their theme until restarted
-- **fzf** colors are set by `.zshrc`, so new shells pick up a switch
+- **WezTerm** builds its colors from `palette.conf` and watches the state, so open windows recolor immediately
+- **tmux** is reloaded by the command and sources `palette.conf` for the status bar colors. `.tmux.conf` allows passthrough and a larger input buffer, which the picker's live recolor and wallpaper thumbnails need
+- **nvim** reads the name on startup, so already running instances keep their theme until restarted
+- **fzf** colors are set by `.zshrc` from `palette.conf`, so new shells pick up a switch
 - **Claude Code** uses the custom theme `custom:active` (set in `.claude/settings.json`). The command copies `assets/claude-themes/<name>.json` to `~/.claude/themes/active.json`, which running sessions hot-reload (sessions started before `~/.claude/themes/` existed need one restart). `.zshrc` sets `CLAUDE_CODE_TMUX_TRUECOLOR=1`, because Claude Code otherwise drops to 256-color approximations inside tmux
 
-On macOS, switching themes also sets the desktop wallpaper on every display and Space to `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`, with matching images for `rose-pine`, `nightowl` and `tokyonight`. The `theme` script reads them straight from the repo, so no extra link is needed. macOS may ask for permission to control System Events the first time the wallpaper is applied.
+On macOS, switching themes also sets the desktop wallpaper on every display and Space to `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`, with matching images for `rose-pine`, `nightowl` and `tokyonight`. The `theme` script reads palettes, wallpapers and Claude Code themes straight from the repo, so no extra link is needed. macOS may ask for permission to control System Events the first time the wallpaper is applied.
 
-To add a theme, create `.tmux/themes/<name>.conf` (defining the same `C_*` variables as the existing ones), then add a matching branch to the color setup in `.wezterm.lua` and a colorscheme plugin with `cond = theme == "<name>"` in `.config/nvim/lua/rene/plugins/colorscheme.lua` (or extend the `cond` of an existing spec when reusing its plugin, as `tokyonight` and `nightowl` do), a branch to the fzf colors in `.zshrc`, and a Claude Code palette as `assets/claude-themes/<name>.json` (a [custom theme](https://code.claude.com/docs/en/terminal-config.md#create-a-custom-theme) with `base` and `overrides`). Add its macOS wallpaper as `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`.
+To add a theme:
+
+1. Create `themes/<name>.conf` with the same keys as the existing ones (`tests/theme.test.mjs` checks that none is missing).
+2. Add a Claude Code palette as `assets/claude-themes/<name>.json` (a [custom theme](https://code.claude.com/docs/en/terminal-config.md#create-a-custom-theme) with `base` and `overrides`).
+3. Add its macOS wallpaper as `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`.
+4. Add a colorscheme plugin with `cond = theme == "<name>"` in `.config/nvim/lua/rene/plugins/colorscheme.lua`, or extend the `cond` of an existing spec when reusing its plugin, as `tokyonight` and `nightowl` do.
 
 ---
 

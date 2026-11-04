@@ -1,79 +1,142 @@
 #!/usr/bin/env bash
-# System-wide theme switcher for wezterm, tmux, nvim, fzf, Claude Code, and
-# the macOS wallpaper.
+# System-wide theme switcher for wezterm, tmux, nvim, fzf, Claude Code and
+# the macOS wallpaper. Run `theme help` for the commands; plain `theme` opens
+# an interactive picker that previews each theme and recolors the terminal
+# live while browsing.
 #
-#   theme                   print the current theme
-#   theme <name>            switch (rose-pine | nightowl | tokyonight), with a
-#                           translucent background (the wallpaper shows through)
-#   theme <name> opaque     switch with solid backgrounds instead
-#
-# State lives in ~/.config/theme/current (theme name) and
-# ~/.config/theme/background (transparent | opaque); each app reads them:
-#   - wezterm watches the file and recolors open windows immediately
-#   - tmux sources ~/.config/theme/tmux-current.conf (symlink set here)
-#   - nvim reads it on startup (running instances keep their theme)
-#   - fzf colors are set by .zshrc (new shells)
+# Each theme is one palette file, themes/<name>.conf in the repo, holding
+# THEME_KEY="value" lines (terminal colors, tmux roles, fzf colors). State
+# lives in ~/.config/theme/:
+#   current       the theme name
+#   background    transparent | opaque
+#   palette.conf  symlink to the active themes/<name>.conf
+# and each app reads it:
+#   - wezterm parses palette.conf and watches the state, recoloring open
+#     windows immediately
+#   - tmux sources palette.conf (reloaded here)
+#   - nvim reads `current` on startup (running instances keep their theme)
+#   - fzf colors are set by .zshrc from palette.conf (new shells)
 #   - Claude Code uses the custom theme ~/.claude/themes/active.json, copied
 #     here from assets/claude-themes/ (running sessions hot-reload it)
 #   - macOS uses the matching bundled wallpaper on every display and Space
+#
+# Written for the bash 3.2 that ships with macOS.
 set -euo pipefail
 
 STATE_DIR="$HOME/.config/theme"
-# ~/.scripts/theme is a symlink into the repo; resolve it to read the tmux
-# palettes, wallpapers and Claude themes straight from the repo, so a newly
-# added theme works without re-running bootstrap.sh to link its files
-REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
-THEMES_DIR="$REPO_DIR/.tmux/themes"
+# ~/.scripts/theme is a symlink into the repo; resolve it to read palettes,
+# wallpapers and Claude themes straight from the repo, so a newly added theme
+# works without re-running bootstrap.sh to link its files
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+REPO_DIR="$(cd "$(dirname "$SELF")/.." && pwd)"
+THEMES_DIR="$REPO_DIR/themes"
 WALLPAPERS_DIR="$REPO_DIR/assets/wallpapers"
 CLAUDE_THEMES_DIR="$REPO_DIR/assets/claude-themes"
 CLAUDE_ACTIVE="$HOME/.claude/themes/active.json"
-
-current() {
-  local name background
-  name="$(cat "$STATE_DIR/current" 2>/dev/null || echo "rose-pine (default)")"
-  background="$(cat "$STATE_DIR/background" 2>/dev/null || echo transparent)"
-  if [ "$background" = opaque ]; then
-    echo "$name (opaque)"
-  else
-    echo "$name"
-  fi
-}
+DEFAULT_THEME=rose-pine
 
 usage() {
-  echo "usage: theme [<name> [opaque]]" >&2
+  cat <<EOF
+usage: theme [<command>] [<args>]
+
+  theme                        pick a theme interactively (prints the current
+                               theme when not run in a terminal)
+  theme pick                   pick a theme with a live preview
+  theme set <name> [--opaque | --translucent]
+                               switch theme; keeps the current background
+                               unless a flag is given
+  theme <name> [opaque]        shorthand for \`theme set\`
+  theme background [opaque | translucent | toggle]
+                               print or switch the background; translucent
+                               lets the wallpaper show through
+  theme current                print the current theme
+  theme list [--names]         list the available themes
+  theme preview <name>         render a theme's preview
+  theme help                   show this help
+
+themes: $(theme_names | paste -sd ' ' -)
+EOF
+}
+
+die() {
+  echo "theme: $*" >&2
   exit 1
 }
 
-if [ $# -eq 0 ]; then
-  current
-  exit 0
-fi
-[ $# -le 2 ] || usage
-
-name="$1"
-background=transparent
-if [ $# -eq 2 ]; then
-  [ "$2" = opaque ] || usage
-  background=opaque
-fi
-if [ ! -r "$THEMES_DIR/$name.conf" ]; then
-  echo "unknown theme: $name" >&2
-  echo "available: $(cd "$THEMES_DIR" && ls ./*.conf | sed 's|^\./||; s|\.conf$||' | paste -sd ' ' -)" >&2
+# Fail on a malformed command line, pointing at the help.
+usage_error() {
+  echo "theme: $*" >&2
+  echo "run \`theme help\` for usage" >&2
   exit 1
-fi
+}
 
-claude_theme="$CLAUDE_THEMES_DIR/$name.json"
-if [ ! -r "$claude_theme" ]; then
-  echo "Claude Code theme not found: $claude_theme" >&2
-  exit 1
-fi
+theme_names() {
+  local file
+  for file in "$THEMES_DIR"/*.conf; do
+    [ -e "$file" ] || continue
+    basename "$file" .conf
+  done
+}
 
-if [ "$(uname -s)" = "Darwin" ]; then
-  wallpaper="$WALLPAPERS_DIR/$name-dark-wallpaper-2560x1440.png"
-  if [ ! -r "$wallpaper" ]; then
-    echo "wallpaper not found: $wallpaper" >&2
-    exit 1
+is_theme() {
+  [ -n "$1" ] && [ -r "$THEMES_DIR/$1.conf" ]
+}
+
+require_theme() {
+  is_theme "$1" || die "unknown theme: $1 (available: $(theme_names | paste -sd ' ' -))"
+}
+
+current_name() {
+  local name
+  name="$(cat "$STATE_DIR/current" 2>/dev/null || true)"
+  if is_theme "$name"; then
+    echo "$name"
+  else
+    echo "$DEFAULT_THEME"
   fi
+}
+
+current_background() {
+  if [ "$(cat "$STATE_DIR/background" 2>/dev/null || true)" = opaque ]; then
+    echo opaque
+  else
+    echo transparent
+  fi
+}
+
+# Load a theme's palette into THEME_* shell variables.
+load_palette() {
+  # shellcheck source=/dev/null
+  . "$THEMES_DIR/$1.conf"
+}
+
+tmp_dir() {
+  local dir="${TMPDIR:-/tmp}"
+  echo "${dir%/}"
+}
+
+is_darwin() {
+  [ "$(uname -s)" = Darwin ]
+}
+
+wallpaper_for() {
+  echo "$WALLPAPERS_DIR/$1-dark-wallpaper-2560x1440.png"
+}
+
+# --- applying a theme -----------------------------------------------------
+
+# Fail before changing anything when one of the theme's files is missing.
+check_theme_files() {
+  require_theme "$1"
+  [ -r "$CLAUDE_THEMES_DIR/$1.json" ] || die "Claude Code theme not found: $CLAUDE_THEMES_DIR/$1.json"
+  if is_darwin; then
+    [ -r "$(wallpaper_for "$1")" ] || die "wallpaper not found: $(wallpaper_for "$1")"
+  fi
+}
+
+set_wallpaper() {
+  local wallpaper store
+  wallpaper="$(wallpaper_for "$1")"
 
   osascript - "$wallpaper" <<'APPLESCRIPT'
 on run argv
@@ -87,33 +150,739 @@ APPLESCRIPT
   # so the other Spaces would keep the old wallpaper. Collapse what it wrote
   # into the single "all Spaces and displays" entry that System Settings
   # uses, then restart WallpaperAgent so every Space picks it up.
+  # WallpaperAgent writes the store a moment after System Events returns,
+  # and where it lands depends on the store's shape (a display, a Space, or
+  # the all-Spaces entry left by the previous switch), so wait for an entry
+  # showing the new picture and take the most recently set one.
   store="$HOME/Library/Application Support/com.apple.wallpaper/Store/Index.plist"
-  display="$(plutil -extract Displays raw -o - "$store" | head -n 1)"
-  entry="$(plutil -extract "Displays.$display" xml1 -o - "$store")"
-  plutil -replace AllSpacesAndDisplays -xml "$entry" -o "$store.tmp" "$store"
-  plutil -replace Displays -dictionary "$store.tmp"
-  plutil -replace Spaces -dictionary "$store.tmp"
-  mv "$store.tmp" "$store"
+  if ! osascript -l JavaScript - "$store" "$wallpaper" <<'JAVASCRIPT'
+ObjC.import("Foundation");
+
+function readStore(path) {
+  const data = $.NSData.dataWithContentsOfFile(path);
+  if (data.isNil()) return null;
+  const format = Ref();
+  const store = $.NSPropertyListSerialization.propertyListWithDataOptionsFormatError(
+    data, $.NSPropertyListMutableContainersAndLeaves, format, null);
+  return store.isNil() ? null : { store, format: format[0] };
+}
+
+function isDict(value) {
+  return value && !value.isNil() && value.isKindOfClass($.NSDictionary);
+}
+
+function each(dict, fn) {
+  if (!isDict(dict)) return;
+  const keys = dict.allKeys;
+  for (let i = 0; i < keys.count; i++) fn(dict.objectForKey(keys.objectAtIndex(i)));
+}
+
+// The picture file of an entry's Desktop, and when it was set.
+function desktopOf(entry) {
+  if (!isDict(entry)) return null;
+  const desktop = entry.objectForKey("Desktop");
+  if (!isDict(desktop)) return null;
+  try {
+    const choice = desktop.objectForKey("Content").objectForKey("Choices").objectAtIndex(0);
+    const config = $.NSPropertyListSerialization.propertyListWithDataOptionsFormatError(
+      choice.objectForKey("Configuration"), 0, null, null);
+    const url = $.NSURL.URLWithString(config.objectForKey("url").objectForKey("relative"));
+    const lastSet = desktop.objectForKey("LastSet");
+    return { file: ObjC.unwrap(url.path), time: lastSet.isNil() ? 0 : lastSet.timeIntervalSince1970 };
+  } catch (error) {
+    return null;
+  }
+}
+
+// The most recently set entry showing the picture, wherever it is.
+function newestEntryFor(store, picture) {
+  let newest = null;
+  let newestTime = -Infinity;
+  const consider = (entry) => {
+    const desktop = desktopOf(entry);
+    if (desktop && desktop.file === picture && desktop.time > newestTime) {
+      newest = entry;
+      newestTime = desktop.time;
+    }
+  };
+  consider(store.objectForKey("AllSpacesAndDisplays"));
+  each(store.objectForKey("Displays"), consider);
+  each(store.objectForKey("Spaces"), (space) => {
+    if (!isDict(space)) return;
+    consider(space.objectForKey("Default"));
+    each(space.objectForKey("Displays"), consider);
+  });
+  return newest;
+}
+
+function run(argv) {
+  const [path, picture] = argv;
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const read = readStore(path);
+    const entry = read && newestEntryFor(read.store, picture);
+    if (entry) {
+      read.store.setObjectForKey(entry, "AllSpacesAndDisplays");
+      read.store.setObjectForKey($.NSMutableDictionary.dictionary, "Displays");
+      read.store.setObjectForKey($.NSMutableDictionary.dictionary, "Spaces");
+      const out = $.NSPropertyListSerialization.dataWithPropertyListFormatOptionsError(
+        read.store, read.format, 0, null);
+      if (out.isNil() || !out.writeToFileAtomically(path, true)) throw new Error("cannot write " + path);
+      return;
+    }
+    delay(0.1);
+  }
+  throw new Error("the new wallpaper never showed up in " + path);
+}
+JAVASCRIPT
+  then
+    echo "theme: the wallpaper only changed on the current Space" >&2
+    return 0
+  fi
   killall WallpaperAgent 2>/dev/null || true
-fi
+}
 
-mkdir -p "$STATE_DIR"
-printf '%s\n' "$name" > "$STATE_DIR/current"
-printf '%s\n' "$background" > "$STATE_DIR/background"
-ln -sf "$THEMES_DIR/$name.conf" "$STATE_DIR/tmux-current.conf"
+tmux_running() {
+  [ -n "${TMUX:-}" ] || tmux info >/dev/null 2>&1
+}
 
-# write via a temp file + rename so Claude Code's watcher never reads a
-# half-written theme
-mkdir -p "$(dirname "$CLAUDE_ACTIVE")"
-cp "$claude_theme" "$CLAUDE_ACTIVE.tmp"
-mv "$CLAUDE_ACTIVE.tmp" "$CLAUDE_ACTIVE"
+# Write the state and point every app at it. The wallpaper goes last: it is
+# the slowest step, and wezterm/tmux recolor meanwhile.
+apply_theme() {
+  local name="$1" background="$2" wallpaper="$3"
 
-if [ -n "${TMUX:-}" ] || tmux info >/dev/null 2>&1; then
-  tmux source-file ~/.tmux.conf
-fi
+  mkdir -p "$STATE_DIR"
+  printf '%s\n' "$name" >"$STATE_DIR/current"
+  printf '%s\n' "$background" >"$STATE_DIR/background"
+  ln -sfn "$THEMES_DIR/$name.conf" "$STATE_DIR/palette.conf"
+  # the palette used to be linked here for tmux alone
+  rm -f "$STATE_DIR/tmux-current.conf"
 
-# nudge wezterm's config watcher so open windows recolor (the state file
-# itself isn't reliably watched; the main config file always is)
-touch ~/.wezterm.lua 2>/dev/null || true
+  # write via a temp file + rename so Claude Code's watcher never reads a
+  # half-written theme
+  mkdir -p "$(dirname "$CLAUDE_ACTIVE")"
+  cp "$CLAUDE_THEMES_DIR/$name.json" "$CLAUDE_ACTIVE.tmp"
+  mv "$CLAUDE_ACTIVE.tmp" "$CLAUDE_ACTIVE"
 
-echo "theme: $(current) (nvim picks it up on next launch)"
+  if tmux_running; then
+    tmux source-file ~/.tmux.conf
+  fi
+
+  # nudge wezterm's config watcher so open windows recolor (the state files
+  # aren't reliably watched; the main config file always is)
+  touch ~/.wezterm.lua 2>/dev/null || true
+
+  if [ "$wallpaper" = yes ] && is_darwin; then
+    set_wallpaper "$name"
+  fi
+}
+
+# --- live recoloring (picker) ---------------------------------------------
+
+# Send escape sequences to the terminal, through tmux when inside it (which
+# needs allow-passthrough, set in .tmux.conf).
+send_to_terminal() {
+  local seq="$1"
+  if [ -n "${TMUX:-}" ]; then
+    local esc=$'\e'
+    seq="${esc}Ptmux;${seq//$esc/$esc$esc}${esc}\\"
+  fi
+  printf '%s' "$seq" >/dev/tty 2>/dev/null || true
+}
+
+# Recolor the terminal window and the tmux status bar to a theme, without
+# changing any state. The picker starts one of these per cursor move, and
+# they can overlap while the cursor moves quickly; so each records the theme
+# it was asked for, and whichever holds the lock applies the latest request,
+# making the last move win.
+live_preview() {
+  local name="$1" dir="${THEME_PICK_DIR:-}"
+  require_theme "$name"
+  if [ -z "$dir" ]; then
+    live_recolor "$name"
+    return
+  fi
+  printf '%s\n' "$name" >"$dir/live-requested"
+  live_lock "$dir" || return 0
+  # the picker has closed and reset the colors meanwhile
+  if [ -e "$dir/closed" ]; then
+    rmdir "$dir/live.lock"
+    return 0
+  fi
+  local requested applied
+  requested="$(cat "$dir/live-requested" 2>/dev/null || echo "$name")"
+  applied="$(cat "$dir/live-applied" 2>/dev/null || true)"
+  if [ "$requested" != "$applied" ] && is_theme "$requested"; then
+    live_recolor "$requested"
+    printf '%s\n' "$requested" >"$dir/live-applied"
+    live_reassert "$dir" "$requested"
+  fi
+  rmdir "$dir/live.lock"
+}
+
+live_lock() {
+  local tries=0
+  until mkdir "$1/live.lock" 2>/dev/null; do
+    tries=$((tries + 1))
+    # a holder only runs for milliseconds; don't wait forever on a stale lock
+    [ "$tries" -lt 200 ] || return 1
+    sleep 0.01
+  done
+}
+
+# The escape sequences that set the terminal's colors to a theme's palette.
+palette_sequence() {
+  local seq i var
+  load_palette "$1"
+  seq=$'\e]10;'"$THEME_FG"$'\a\e]11;'"$THEME_BG"$'\a\e]12;'"$THEME_CURSOR_BG"$'\a'
+  for i in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    var="THEME_ANSI_$i"
+    seq="$seq"$'\e]4;'"$i;${!var}"$'\a'
+  done
+  printf '%s' "$seq"
+}
+
+live_recolor() {
+  send_to_terminal "$(palette_sequence "$1")"
+  if [ -n "${TMUX:-}" ]; then
+    tmux source-file "$THEMES_DIR/$1.conf" \; source-file ~/.tmux/statusbar.conf 2>/dev/null || true
+  fi
+}
+
+# tmux drops passthrough sequences while it holds back output for a client
+# that can't keep up, which the preview's large sixel thumbnail causes on
+# every cursor move, and its redraw afterwards repaints the screen but can't
+# replay them. So inside tmux, send the colors again once the preview has
+# drawn, unless the cursor has moved on or the picker has closed.
+live_reassert() {
+  local dir="$1" name="$2"
+  [ -n "${TMUX:-}" ] || return 0
+  (
+    for delay in 0.4 1.2; do
+      sleep "$delay"
+      [ -d "$dir" ] && live_lock "$dir" || exit 0
+      if [ -e "$dir/closed" ] || [ "$(cat "$dir/live-applied" 2>/dev/null)" != "$name" ]; then
+        rmdir "$dir/live.lock"
+        exit 0
+      fi
+      send_to_terminal "$(palette_sequence "$name")"
+      rmdir "$dir/live.lock"
+    done
+  ) </dev/null >/dev/null 2>&1 &
+}
+
+# Undo live_preview: back to the colors from the terminal's config. Wait for
+# a recolor in flight, and stop later ones from undoing the reset. Runs from
+# the picker's EXIT trap.
+# shellcheck disable=SC2329
+live_reset() {
+  local dir="${THEME_PICK_DIR:-}" locked=no reset=$'\e]104\a\e]110\a\e]111\a\e]112\a'
+  if [ -n "$dir" ] && [ -d "$dir" ]; then
+    touch "$dir/closed"
+    if live_lock "$dir"; then locked=yes; fi
+  fi
+  send_to_terminal "$reset"
+  if [ -n "${TMUX:-}" ]; then
+    if [ -r "$STATE_DIR/palette.conf" ]; then
+      tmux source-file "$STATE_DIR/palette.conf" \; source-file ~/.tmux/statusbar.conf 2>/dev/null || true
+    fi
+    # the reset can be dropped like a recolor (see live_reassert); send it
+    # again unless another picker has opened since
+    (
+      for delay in 0.4 1.2; do
+        sleep "$delay"
+        if ls -d "$(tmp_dir)"/theme.?????? >/dev/null 2>&1; then exit 0; fi
+        send_to_terminal "$reset"
+      done
+    ) </dev/null >/dev/null 2>&1 &
+  fi
+  [ "$locked" = no ] || rmdir "$dir/live.lock"
+}
+
+# --- preview rendering ----------------------------------------------------
+
+hex_rgb() {
+  local hex="${1#\#}"
+  printf '%d;%d;%d' "0x${hex:0:2}" "0x${hex:2:2}" "0x${hex:4:2}"
+}
+
+# The preview is built one line at a time from colored segments; LEN tracks
+# the visible width so each line can be padded with the theme background.
+line_start() {
+  LINE=""
+  LEN=0
+}
+
+# seg <fg hex> <bg hex | -> <text> [bold]
+seg() {
+  local fg="$1" bg="$2" text="$3" bold="${4:-}" sgr
+  sgr="38;2;$(hex_rgb "$fg")"
+  if [ "$bg" = - ]; then
+    bg="$PREVIEW_BG"
+  fi
+  if [ "$bg" = - ]; then
+    sgr="$sgr;49"
+  else
+    sgr="$sgr;48;2;$(hex_rgb "$bg")"
+  fi
+  [ -z "$bold" ] || sgr="$sgr;1"
+  LINE="$LINE"$'\e['"${sgr}m$text"$'\e[0m'
+  LEN=$((LEN + ${#text}))
+}
+
+line_end() {
+  local pad=$((PREVIEW_WIDTH - LEN))
+  if [ "$pad" -gt 0 ]; then
+    seg "$THEME_FG" - "$(printf '%*s' "$pad" '')"
+  fi
+  printf '%s\n' "$LINE"
+  PREVIEW_ROWS=$((PREVIEW_ROWS + 1))
+}
+
+blank_line() {
+  line_start
+  line_end
+}
+
+# Look up a color in THEME_FZF_COLORS ("key:#hex,...").
+fzf_color() {
+  local entry
+  local IFS=,
+  for entry in $THEME_FZF_COLORS; do
+    if [ "${entry%%:*}" = "$1" ]; then
+      echo "${entry#*:}"
+      return
+    fi
+  done
+  echo "$2"
+}
+
+render_preview() {
+  local name="$1" background="$2"
+  require_theme "$name"
+  load_palette "$name"
+
+  # count characters, not bytes, when measuring the lines
+  case "$(locale charmap 2>/dev/null)" in
+    UTF-8) ;;
+    *) export LC_ALL=en_US.UTF-8 ;;
+  esac
+
+  PREVIEW_WIDTH="${FZF_PREVIEW_COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
+  local height="${FZF_PREVIEW_LINES:-$(tput lines 2>/dev/null || echo 24)}"
+  PREVIEW_ROWS=0
+  # translucent: leave the terminal default background (the picker recolors
+  # it live), so the wallpaper shows through as it will after switching
+  if [ "$background" = opaque ]; then
+    PREVIEW_BG="$THEME_BG"
+  else
+    PREVIEW_BG=-
+  fi
+
+  # dim: comments and line numbers, as the terminal shows them; subtle:
+  # secondary UI text, which has to stay readable in every theme
+  local fg="$THEME_FG" dim="$THEME_ANSI_8" subtle="$THEME_TMUX_FG_DARK"
+  local mark=""
+  [ "$name" != "$(current_name)" ] || mark="  (current)"
+  local bg_label=translucent
+  [ "$background" != opaque ] || bg_label=opaque
+
+  line_start
+  seg "$fg" - "  "
+  seg "$THEME_ANSI_5" - "$THEME_LABEL" bold
+  seg "$subtle" - "$mark"
+  line_end
+  line_start
+  seg "$subtle" - "  $name · $bg_label background"
+  line_end
+  blank_line
+
+  # tmux status bar, as laid out by .tmux/statusbar.conf
+  local bar_bg="$THEME_TMUX_BG"
+  [ "$background" = opaque ] || bar_bg=-
+  line_start
+  seg "$THEME_TMUX_BG" "$THEME_TMUX_BLUE" "  main "
+  seg "$fg" "$bar_bg" "  "
+  seg "$THEME_TMUX_BG" "$THEME_TMUX_YELLOW" " 1 "
+  seg "$THEME_TMUX_FG" "$THEME_TMUX_SURFACE" " nvim "
+  seg "$fg" "$bar_bg" " "
+  seg "$THEME_TMUX_BG" "$THEME_TMUX_GUTTER" " 2 "
+  seg "$THEME_TMUX_FG_DARK" "$THEME_TMUX_SURFACE" " zsh "
+  local clock=" 12:30 "
+  local fill=$((PREVIEW_WIDTH - LEN - ${#clock}))
+  if [ "$fill" -gt 0 ]; then
+    seg "$fg" "$bar_bg" "$(printf '%*s' "$fill" '')"
+  fi
+  seg "$THEME_TMUX_BG" "$THEME_TMUX_BLUE" "$clock"
+  line_end
+  blank_line
+
+  # code, colored by ANSI role as most colorschemes do
+  local num="$THEME_ANSI_8"
+  local kw="$THEME_ANSI_5" fn="$THEME_ANSI_4" str="$THEME_ANSI_2" lit="$THEME_ANSI_3" err="$THEME_ANSI_1" typ="$THEME_ANSI_6"
+  line_start
+  seg "$num" - "   1  "
+  seg "$dim" - "-- greet everyone on the list"
+  line_end
+  line_start
+  seg "$num" - "   2  "
+  seg "$kw" - "local function "
+  seg "$fn" - "greet"
+  seg "$fg" - "(names, "
+  seg "$typ" - "opts"
+  seg "$fg" - ")"
+  line_end
+  line_start
+  seg "$num" - "   3  "
+  seg "$kw" - "  for "
+  seg "$fg" - "i = "
+  seg "$lit" - "1"
+  seg "$fg" - ", #names "
+  seg "$kw" - "do"
+  line_end
+  line_start
+  seg "$num" - "   4  "
+  seg "$fn" - "    print"
+  seg "$fg" - "("
+  seg "$str" - "\"hello, \""
+  seg "$fg" - " .. names[i])"
+  line_end
+  line_start
+  seg "$num" - "   5  "
+  seg "$kw" - "  end"
+  line_end
+  line_start
+  seg "$num" - "   6  "
+  seg "$kw" - "  return "
+  seg "$err" - "nil"
+  seg "$fg" - ", "
+  seg "$str" - "\"done\""
+  line_end
+  line_start
+  seg "$num" - "   7  "
+  seg "$kw" - "end"
+  line_end
+  blank_line
+
+  # fzf, with the theme's fzf colors
+  local fzf_fg fzf_hl fzf_sel_bg fzf_sel_fg fzf_pointer fzf_prompt fzf_info
+  fzf_fg="$(fzf_color fg "$fg")"
+  fzf_hl="$(fzf_color hl "$THEME_ANSI_4")"
+  fzf_sel_bg="$(fzf_color bg+ "$THEME_SELECTION_BG")"
+  fzf_sel_fg="$(fzf_color fg+ "$fg")"
+  fzf_pointer="$(fzf_color pointer "$THEME_ANSI_5")"
+  fzf_prompt="$(fzf_color prompt "$THEME_ANSI_6")"
+  fzf_info="$(fzf_color info "$dim")"
+  line_start
+  seg "$fzf_prompt" - "  > "
+  seg "$fzf_fg" - "the"
+  seg "$fzf_info" - "  3/120"
+  line_end
+  line_start
+  seg "$fzf_pointer" "$fzf_sel_bg" "  ▌ "
+  seg "$fzf_hl" "$fzf_sel_bg" "the"
+  seg "$fzf_sel_fg" "$fzf_sel_bg" "mes/rose-pine.conf"
+  fill=$((PREVIEW_WIDTH - LEN))
+  [ "$fill" -le 0 ] || seg "$fzf_sel_fg" "$fzf_sel_bg" "$(printf '%*s' "$fill" '')"
+  line_end
+  line_start
+  seg "$fzf_fg" - "    .scripts/"
+  seg "$fzf_hl" - "the"
+  seg "$fzf_fg" - "me"
+  line_end
+  line_start
+  seg "$fzf_fg" - "    README.md (switching "
+  seg "$fzf_hl" - "the"
+  seg "$fzf_fg" - "mes)"
+  line_end
+  blank_line
+
+  # the 16 terminal colors
+  local row i var swatch
+  swatch=$(((PREVIEW_WIDTH - 4) / 8))
+  [ "$swatch" -le 6 ] || swatch=6
+  [ "$swatch" -ge 2 ] || swatch=2
+  for row in 0 8; do
+    line_start
+    seg "$fg" - "  "
+    for i in 0 1 2 3 4 5 6 7; do
+      var="THEME_ANSI_$((row + i))"
+      seg "${!var}" "${!var}" "$(printf '%*s' "$swatch" '')"
+    done
+    line_end
+  done
+  blank_line
+
+  render_wallpaper "$name" $((height - PREVIEW_ROWS))
+}
+
+# The wallpaper thumbnail, sized to the remaining preview lines. Images need
+# chafa; WezTerm shows iTerm2 images directly and sixels through tmux.
+render_wallpaper() {
+  local name="$1" rows="$2" wallpaper format
+  wallpaper="$(wallpaper_for "$name")"
+  [ "$rows" -ge 4 ] || return 0
+  [ -r "$wallpaper" ] || return 0
+  command -v chafa >/dev/null 2>&1 || return 0
+  if [ -n "${TMUX:-}" ]; then
+    format=sixels
+  elif [ "${TERM_PROGRAM:-}" = WezTerm ]; then
+    format=iterm
+  else
+    format=symbols
+  fi
+  # fzf always puts images at the preview's left edge, so the thumbnail is
+  # full-bleed like the status bar and the selected fzf row above it, and
+  # fills the rest of the preview but the last line (fzf scrolls the preview
+  # when an image touches its bottom edge), which gets the background
+  local width="$PREVIEW_WIDTH" height=$((rows - 1))
+  chafa --format "$format" --passthrough none --polite on --stretch \
+    --size "${width}x${height}" "$(cover_crop "$wallpaper" "$name" "$width" "$height")" 2>/dev/null || return 0
+  echo
+  blank_line
+}
+
+# Crop an image (centered) to the aspect ratio of a box of terminal cells,
+# which are about twice as tall as wide, so it covers the box without
+# distortion. Crops are cached per size; without sips (macOS) the image is
+# used as is.
+cover_crop() {
+  local image="$1" name="$2" cols="$3" rows="$4"
+  command -v sips >/dev/null 2>&1 || {
+    echo "$image"
+    return
+  }
+  local cache crop
+  cache="$(tmp_dir)/theme-preview"
+  crop="$cache/$name-${cols}x${rows}.png"
+  if [ ! -r "$crop" ]; then
+    local size image_w image_h crop_w crop_h
+    size="$(sips -g pixelWidth -g pixelHeight "$image" 2>/dev/null | awk '/pixel/ { print $2 }' | paste -sd ' ' -)"
+    image_w="${size% *}"
+    image_h="${size#* }"
+    # box aspect = cols / (2 * rows); keep the full width or full height
+    crop_w="$image_w"
+    crop_h=$((image_w * 2 * rows / cols))
+    if [ "$crop_h" -gt "$image_h" ]; then
+      crop_h="$image_h"
+      crop_w=$((image_h * cols / (2 * rows)))
+    fi
+    mkdir -p "$cache"
+    if ! sips --cropToHeightWidth "$crop_h" "$crop_w" --resampleHeightWidthMax 1600 \
+      "$image" --out "$crop.tmp.png" >/dev/null 2>&1; then
+      echo "$image"
+      return
+    fi
+    mv "$crop.tmp.png" "$crop"
+  fi
+  echo "$crop"
+}
+
+# --- commands -------------------------------------------------------------
+
+cmd_current() {
+  [ $# -eq 0 ] || usage_error "current takes no arguments"
+  local name
+  if [ -r "$STATE_DIR/current" ]; then
+    name="$(current_name)"
+  else
+    name="$DEFAULT_THEME (default)"
+  fi
+  if [ "$(current_background)" = opaque ]; then
+    echo "$name (opaque)"
+  else
+    echo "$name"
+  fi
+}
+
+cmd_list() {
+  local names=no
+  case "${1:-}" in
+    --names) names=yes ;;
+    "") ;;
+    *) usage_error "unknown option for list: $1" ;;
+  esac
+  [ $# -le 1 ] || usage_error "list takes at most one option"
+
+  local current name
+  current="$(current_name)"
+  for name in $(theme_names); do
+    if [ "$names" = yes ]; then
+      echo "$name"
+      continue
+    fi
+    THEME_LABEL=""
+    load_palette "$name"
+    if [ "$name" = "$current" ]; then
+      printf '* %-12s %s\n' "$name" "$THEME_LABEL"
+    else
+      printf '  %-12s %s\n' "$name" "$THEME_LABEL"
+    fi
+  done
+}
+
+cmd_set() {
+  local name="" background=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --opaque | opaque) background=opaque ;;
+      --translucent | --transparent | translucent | transparent) background=transparent ;;
+      -*) usage_error "unknown option for set: $1" ;;
+      *)
+        [ -z "$name" ] || usage_error "set takes one theme name"
+        name="$1"
+        ;;
+    esac
+    shift
+  done
+  [ -n "$name" ] || usage_error "set needs a theme name"
+  [ -n "$background" ] || background="$(current_background)"
+
+  check_theme_files "$name"
+  apply_theme "$name" "$background" yes
+  echo "theme: $(cmd_current) (nvim picks it up on next launch)"
+}
+
+cmd_background() {
+  [ $# -le 1 ] || usage_error "background takes at most one argument"
+  local background
+  case "${1:-}" in
+    "")
+      if [ "$(current_background)" = opaque ]; then echo opaque; else echo translucent; fi
+      return
+      ;;
+    opaque) background=opaque ;;
+    translucent | transparent) background=transparent ;;
+    toggle)
+      if [ "$(current_background)" = opaque ]; then background=transparent; else background=opaque; fi
+      ;;
+    *) usage_error "unknown background: $1 (use opaque, translucent or toggle)" ;;
+  esac
+
+  local name
+  name="$(current_name)"
+  check_theme_files "$name"
+  # the wallpaper doesn't depend on the background, so leave it alone
+  apply_theme "$name" "$background" no
+  echo "theme: $(cmd_current) (nvim picks it up on next launch)"
+}
+
+cmd_preview() {
+  [ $# -eq 1 ] || usage_error "preview needs one theme name"
+  local background
+  # inside the picker, follow its background toggle; on its own, paint the
+  # theme background so the preview reads correctly in any terminal
+  if [ -n "${THEME_PICK_DIR:-}" ]; then
+    background="$(cat "$THEME_PICK_DIR/background" 2>/dev/null || echo transparent)"
+  else
+    background=opaque
+  fi
+  render_preview "$1" "$background"
+}
+
+pick_header() {
+  local background
+  background="$(cat "$THEME_PICK_DIR/background" 2>/dev/null || echo transparent)"
+  [ "$background" = opaque ] || background=translucent
+  echo " enter apply · ctrl-b background: $background · esc cancel "
+}
+
+pick_toggle_background() {
+  if [ "$(cat "$THEME_PICK_DIR/background" 2>/dev/null)" = opaque ]; then
+    echo transparent >"$THEME_PICK_DIR/background"
+  else
+    echo opaque >"$THEME_PICK_DIR/background"
+  fi
+}
+
+cmd_pick() {
+  [ $# -eq 0 ] || usage_error "pick takes no arguments"
+  command -v fzf >/dev/null 2>&1 || die "the picker needs fzf (brew install fzf); use \`theme set <name>\` instead"
+  [ -t 0 ] && [ -t 1 ] || die "the picker needs a terminal; use \`theme set <name>\` instead"
+
+  local current position=1 index=0 name selected self
+  current="$(current_name)"
+  for name in $(theme_names); do
+    index=$((index + 1))
+    [ "$name" != "$current" ] || position=$index
+  done
+
+  # global, as the EXIT trap runs after this function has returned
+  PICK_TMP="$(mktemp -d "$(tmp_dir)/theme.XXXXXX")"
+  # always hand the terminal back with its configured colors
+  trap 'live_reset; rm -rf "$PICK_TMP"' EXIT
+  trap 'exit 130' INT TERM
+  export THEME_PICK_DIR="$PICK_TMP"
+  current_background >"$THEME_PICK_DIR/background"
+
+  # the live recolor needs passthrough; .tmux.conf sets it, but a server
+  # started before that change would otherwise ignore the picker's colors
+  if [ -n "${TMUX:-}" ]; then
+    tmux set -g allow-passthrough on 2>/dev/null || true
+  fi
+
+  self="$(printf '%q' "$SELF")"
+  # the key hints sit on the bottom border, which spans the whole width, and
+  # the list uses ANSI colors (not the theme's hex fzf colors), so it
+  # recolors along with the terminal while browsing
+  selected="$(theme_names | fzf \
+    --no-multi --layout reverse --height 100% --info hidden --highlight-line \
+    --prompt 'theme > ' --pointer '▌' --gutter ' ' \
+    --border rounded --border-label "$(pick_header)" --border-label-pos 0:bottom \
+    --color 'bg:-1,fg:-1,bg+:0,fg+:15,hl:4,hl+:4,gutter:-1,pointer:5,prompt:6,border:8,label:-1:dim,separator:8,scrollbar:8,preview-bg:-1' \
+    --preview "$self preview {}" \
+    --preview-window 'right,70%,border-left,noinfo' \
+    --bind "load:pos($position)" \
+    --bind "focus:execute-silent($self __live {})" \
+    --bind "ctrl-b:execute-silent($self __toggle-background)+transform-border-label($self __header)+refresh-preview")" || true
+
+  if [ -z "$selected" ]; then
+    echo "theme: unchanged, $(cmd_current)"
+    return 0
+  fi
+  local background
+  background="$(cat "$THEME_PICK_DIR/background")"
+  check_theme_files "$selected"
+  apply_theme "$selected" "$background" yes
+  echo "theme: $(cmd_current) (nvim picks it up on next launch)"
+}
+
+main() {
+  if [ $# -eq 0 ]; then
+    if [ -t 0 ] && [ -t 1 ]; then
+      cmd_pick
+    else
+      cmd_current
+    fi
+    return
+  fi
+
+  local command="$1"
+  shift
+  case "$command" in
+    pick) cmd_pick "$@" ;;
+    set) cmd_set "$@" ;;
+    background | bg) cmd_background "$@" ;;
+    current) cmd_current "$@" ;;
+    list | ls) cmd_list "$@" ;;
+    preview) cmd_preview "$@" ;;
+    help | -h | --help)
+      [ $# -eq 0 ] || usage_error "help takes no arguments"
+      usage
+      ;;
+    # internal, called by the picker's fzf
+    __live) live_preview "$@" ;;
+    __header) pick_header ;;
+    __toggle-background) pick_toggle_background ;;
+    *)
+      if is_theme "$command"; then
+        cmd_set "$command" "$@"
+      else
+        usage_error "unknown command or theme: $command (themes: $(theme_names | paste -sd ' ' -))"
+      fi
+      ;;
+  esac
+}
+
+# exit on the same line, so bash never reads past it: editing or pulling
+# this file while the picker is open can't run half-read code afterwards
+main "$@"; exit
