@@ -301,31 +301,28 @@ send_to_terminal() {
   printf '%s' "$seq" >/dev/tty 2>/dev/null || true
 }
 
-# Show a theme and background on the terminal window and the tmux status
-# bar, without changing any state. In the picker, the background is the one
-# its toggle holds. The picker starts one of these per cursor move or
-# toggle, and they can overlap while the cursor moves quickly; so each
-# records what it was asked for, and whichever holds the lock applies the
-# latest request, making the last move win.
+# Show the theme the picker's cursor is on, with the background its toggle
+# holds, on the terminal window and the tmux status bar, without changing
+# any state. fzf records the theme in live-requested and starts one of
+# these in the background on every cursor move or toggle, so it never waits
+# on a recolor; they can overlap while the cursor moves quickly, so
+# whichever holds the lock applies the latest request, making the last
+# move win.
 live_preview() {
-  local name="$1" dir="${THEME_PICK_DIR:-}"
-  require_theme "$name"
-  if [ -z "$dir" ]; then
-    live_recolor "$name" "$(current_background)"
-    return
-  fi
-  printf '%s %s\n' "$name" "$(pick_background)" >"$dir/live-requested"
+  local dir="${THEME_PICK_DIR:-}"
+  [ -n "$dir" ] || die "__live only runs inside the picker"
   live_lock "$dir" || return 0
   # the picker has closed and reset the colors meanwhile
   if [ -e "$dir/closed" ]; then
     rmdir "$dir/live.lock"
     return 0
   fi
-  local requested applied
-  requested="$(cat "$dir/live-requested" 2>/dev/null || true)"
+  local name requested applied
+  name="$(cat "$dir/live-requested" 2>/dev/null || true)"
   applied="$(cat "$dir/live-applied" 2>/dev/null || true)"
-  if [ -n "$requested" ] && [ "$requested" != "$applied" ] && is_theme "${requested% *}"; then
-    live_recolor "${requested% *}" "${requested#* }"
+  requested="$name $(pick_background)"
+  if is_theme "$name" && [ "$requested" != "$applied" ]; then
+    live_recolor "$name" "${requested#* }"
     printf '%s\n' "$requested" >"$dir/live-applied"
     live_reassert "$dir" "$requested"
   fi
@@ -441,9 +438,14 @@ use_utf8_locale() {
   esac
 }
 
-hex_rgb() {
-  local hex="${1#\#}"
-  printf '%d;%d;%d' "0x${hex:0:2}" "0x${hex:2:2}" "0x${hex:4:2}"
+# The preview runs on every cursor move, so its helpers set variables with
+# printf -v instead of printing into $(...), which would fork a subshell for
+# each of the hundred-odd segments.
+
+# rgb <var> <hex>: set var to the hex color as "r;g;b"
+rgb() {
+  local hex="${2#\#}"
+  printf -v "$1" '%d;%d;%d' "0x${hex:0:2}" "0x${hex:2:2}" "0x${hex:4:2}"
 }
 
 # The preview is built one line at a time from colored segments; LEN tracks
@@ -455,25 +457,34 @@ line_start() {
 
 # seg <fg hex> <bg hex | -> <text> [bold]
 seg() {
-  local fg="$1" bg="$2" text="$3" bold="${4:-}" sgr
-  sgr="38;2;$(hex_rgb "$fg")"
+  local fg="$1" bg="$2" text="$3" bold="${4:-}" sgr color
+  rgb color "$fg"
+  sgr="38;2;$color"
   if [ "$bg" = - ]; then
     bg="$PREVIEW_BG"
   fi
   if [ "$bg" = - ]; then
     sgr="$sgr;49"
   else
-    sgr="$sgr;48;2;$(hex_rgb "$bg")"
+    rgb color "$bg"
+    sgr="$sgr;48;2;$color"
   fi
   [ -z "$bold" ] || sgr="$sgr;1"
   LINE="$LINE"$'\e['"${sgr}m$text"$'\e[0m'
   LEN=$((LEN + ${#text}))
 }
 
+# pad <fg hex> <bg hex | -> <width>: a run of spaces
+pad() {
+  local spaces
+  printf -v spaces '%*s' "$3" ''
+  seg "$1" "$2" "$spaces"
+}
+
 line_end() {
   local pad=$((PREVIEW_WIDTH - LEN))
   if [ "$pad" -gt 0 ]; then
-    seg "$THEME_FG" - "$(printf '%*s' "$pad" '')"
+    pad "$THEME_FG" - "$pad"
   fi
   printf '%s\n' "$LINE"
   PREVIEW_ROWS=$((PREVIEW_ROWS + 1))
@@ -484,17 +495,18 @@ blank_line() {
   line_end
 }
 
-# Look up a color in THEME_FZF_COLORS ("key:#hex,...").
+# fzf_color <var> <key> <default>: set var to the color of key in
+# THEME_FZF_COLORS ("key:#hex,..."), or to default
 fzf_color() {
-  local entry
+  local entry color="$3"
   local IFS=,
   for entry in $THEME_FZF_COLORS; do
-    if [ "${entry%%:*}" = "$1" ]; then
-      echo "${entry#*:}"
-      return
+    if [ "${entry%%:*}" = "$2" ]; then
+      color="${entry#*:}"
+      break
     fi
   done
-  echo "$2"
+  printf -v "$1" '%s' "$color"
 }
 
 render_preview() {
@@ -545,7 +557,7 @@ render_preview() {
   local clock=" 12:30 "
   local fill=$((PREVIEW_WIDTH - LEN - ${#clock}))
   if [ "$fill" -gt 0 ]; then
-    seg "$fg" "$bar_bg" "$(printf '%*s' "$fill" '')"
+    pad "$fg" "$bar_bg" "$fill"
   fi
   seg "$THEME_TMUX_BG" "$THEME_TMUX_BLUE" "$clock"
   line_end
@@ -600,13 +612,13 @@ render_preview() {
 
   # fzf, with the theme's fzf colors
   local fzf_fg fzf_hl fzf_sel_bg fzf_sel_fg fzf_pointer fzf_prompt fzf_info
-  fzf_fg="$(fzf_color fg "$fg")"
-  fzf_hl="$(fzf_color hl "$THEME_ANSI_4")"
-  fzf_sel_bg="$(fzf_color bg+ "$THEME_SELECTION_BG")"
-  fzf_sel_fg="$(fzf_color fg+ "$fg")"
-  fzf_pointer="$(fzf_color pointer "$THEME_ANSI_5")"
-  fzf_prompt="$(fzf_color prompt "$THEME_ANSI_6")"
-  fzf_info="$(fzf_color info "$dim")"
+  fzf_color fzf_fg fg "$fg"
+  fzf_color fzf_hl hl "$THEME_ANSI_4"
+  fzf_color fzf_sel_bg bg+ "$THEME_SELECTION_BG"
+  fzf_color fzf_sel_fg fg+ "$fg"
+  fzf_color fzf_pointer pointer "$THEME_ANSI_5"
+  fzf_color fzf_prompt prompt "$THEME_ANSI_6"
+  fzf_color fzf_info info "$dim"
   line_start
   seg "$fzf_prompt" - "  > "
   seg "$fzf_fg" - "the"
@@ -617,7 +629,7 @@ render_preview() {
   seg "$fzf_hl" "$fzf_sel_bg" "the"
   seg "$fzf_sel_fg" "$fzf_sel_bg" "mes/rose-pine.conf"
   fill=$((PREVIEW_WIDTH - LEN))
-  [ "$fill" -le 0 ] || seg "$fzf_sel_fg" "$fzf_sel_bg" "$(printf '%*s' "$fill" '')"
+  [ "$fill" -le 0 ] || pad "$fzf_sel_fg" "$fzf_sel_bg" "$fill"
   line_end
   line_start
   seg "$fzf_fg" - "    .scripts/"
@@ -641,7 +653,7 @@ render_preview() {
     seg "$fg" - "  "
     for i in 0 1 2 3 4 5 6 7; do
       var="THEME_ANSI_$((row + i))"
-      seg "${!var}" "${!var}" "$(printf '%*s' "$swatch" '')"
+      pad "${!var}" "${!var}" "$swatch"
     done
     line_end
   done
@@ -650,66 +662,116 @@ render_preview() {
   render_wallpaper "$name" $((height - PREVIEW_ROWS))
 }
 
-# The wallpaper thumbnail, sized to the remaining preview lines. Images need
-# chafa; WezTerm shows iTerm2 images directly and sixels through tmux.
+# The wallpaper thumbnail, sized to the remaining preview lines (needs
+# chafa).
 render_wallpaper() {
-  local name="$1" rows="$2" wallpaper format
-  wallpaper="$(wallpaper_for "$name")"
+  local name="$1" rows="$2" image format
+  image="$(wallpaper_for "$name")"
   [ "$rows" -ge 4 ] || return 0
-  [ -r "$wallpaper" ] || return 0
+  [ -r "$image" ] || return 0
   command -v chafa >/dev/null 2>&1 || return 0
-  if [ -n "${TMUX:-}" ]; then
-    format=sixels
-  elif [ "${TERM_PROGRAM:-}" = WezTerm ]; then
-    format=iterm
-  else
-    format=symbols
-  fi
   # fzf always puts images at the preview's left edge, so the thumbnail is
   # full-bleed like the status bar and the selected fzf row above it, and
   # fills the rest of the preview but the last line (fzf scrolls the preview
   # when an image touches its bottom edge), which gets the background
-  local width="$PREVIEW_WIDTH" height=$((rows - 1))
-  chafa --format "$format" --passthrough none --polite on --stretch \
-    --size "${width}x${height}" "$(cover_crop "$wallpaper" "$name" "$width" "$height")" 2>/dev/null || return 0
+  local size="${PREVIEW_WIDTH}x$((rows - 1))" thumbnail
+  format="$(thumbnail_format)"
+  # chafa sizes pixel images for the terminal's cells, so a font change
+  # needs new ones
+  thumbnail="$(thumbnail_cache)/$name-$size-${THEME_PICK_CELL:-cell}.$format"
+  if [ ! -s "$thumbnail" ] || [ "$image" -nt "$thumbnail" ]; then
+    make_thumbnail "$image" "$thumbnail" "$size" "$format" || return 0
+  fi
+  cat "$thumbnail"
   echo
   blank_line
 }
 
-# Crop an image (centered) to the aspect ratio of a box of terminal cells,
-# which are about twice as tall as wide, so it covers the box without
-# distortion. Crops are cached per size; without sips (macOS) the image is
-# used as is.
+# Sixel, which fzf can place below text (it assumes an iTerm2 image fills the
+# whole preview, so it only draws one at the very top), or text symbols in
+# terminals without pixel graphics.
+thumbnail_format() {
+  if [ -n "${TMUX:-}" ] || [ "${TERM_PROGRAM:-}" = WezTerm ]; then
+    echo sixels
+  else
+    echo symbols
+  fi
+}
+
+# The cache holds each theme's thumbnail as the escape sequence that draws
+# it, per size and format: building one takes 100-200 ms, reading it back
+# a few. The picker prunes files older than a week when it opens.
+thumbnail_cache() {
+  echo "$(tmp_dir)/theme-preview"
+}
+
+# make_thumbnail <image> <out> <cols>x<rows> <format>: draw the image
+# cropped to fill cols x rows cells. Written to a temp file and renamed, as
+# the picker can build the same one twice at once (its own preview and the
+# ahead-of-time pass).
+make_thumbnail() {
+  local image="$1" out="$2" size="$3" format="$4" crop tmp
+  tmp="$out.$$.tmp"
+  mkdir -p "$(dirname "$out")"
+  crop="$(cover_crop "$image" "$out.jpg" "${size%x*}" "${size#*x}")"
+  # chafa finds the terminal through the controlling tty, and reads its cell
+  # size from it to draw pixel images at full resolution. --probe off: it
+  # would also query the terminal and wait for the answer, which fzf reads
+  # as typed keys instead. --work 1 picks the sixel palette faster and makes
+  # the image about a third the size, which looks the same at this size:
+  # tmux has to parse and re-encode every byte on each cursor move
+  if chafa --probe off --format "$format" --passthrough none --polite on --stretch --work 1 \
+    --size "$size" "$crop" </dev/null >"$tmp" 2>/dev/null; then
+    mv "$tmp" "$out"
+  else
+    rm -f "$tmp"
+  fi
+  [ "$crop" = "$image" ] || rm -f "$crop"
+  [ -s "$out" ]
+}
+
+# cover_crop <image> <out.jpg> <cols> <rows>: crop the image to the aspect
+# of cols x rows cells, the way CSS background-size: cover does, and print
+# its path; prints the image itself when it can't crop (no sips outside
+# macOS). Cells are as the picker measured them, else twice as tall as wide.
 cover_crop() {
-  local image="$1" name="$2" cols="$3" rows="$4"
+  local image="$1" crop="$2" cols="$3" rows="$4"
   command -v sips >/dev/null 2>&1 || {
     echo "$image"
     return
   }
-  local cache crop
-  cache="$(tmp_dir)/theme-preview"
-  crop="$cache/$name-${cols}x${rows}.png"
-  if [ ! -r "$crop" ]; then
-    local size image_w image_h crop_w crop_h
-    size="$(sips -g pixelWidth -g pixelHeight "$image" 2>/dev/null | awk '/pixel/ { print $2 }' | paste -sd ' ' -)"
-    image_w="${size% *}"
-    image_h="${size#* }"
-    # box aspect = cols / (2 * rows); keep the full width or full height
-    crop_w="$image_w"
-    crop_h=$((image_w * 2 * rows / cols))
-    if [ "$crop_h" -gt "$image_h" ]; then
-      crop_h="$image_h"
-      crop_w=$((image_h * cols / (2 * rows)))
-    fi
-    mkdir -p "$cache"
-    if ! sips --cropToHeightWidth "$crop_h" "$crop_w" --resampleHeightWidthMax 1600 \
-      "$image" --out "$crop.tmp.png" >/dev/null 2>&1; then
-      echo "$image"
-      return
-    fi
-    mv "$crop.tmp.png" "$crop"
+  local size image_w image_h crop_w crop_h cell="${THEME_PICK_CELL:-1x2}"
+  size="$(sips -g pixelWidth -g pixelHeight "$image" 2>/dev/null | awk '/pixel/ { print $2 }' | paste -sd ' ' -)"
+  image_w="${size% *}"
+  image_h="${size#* }"
+  # the box in pixels; keep the image's full width or full height
+  local box_w=$((cols * ${cell%x*})) box_h=$((rows * ${cell#*x}))
+  crop_w="$image_w"
+  crop_h=$((image_w * box_h / box_w))
+  if [ "$crop_h" -gt "$image_h" ]; then
+    crop_h="$image_h"
+    crop_w=$((image_h * box_w / box_h))
   fi
+  if ! sips --cropToHeightWidth "$crop_h" "$crop_w" --resampleHeightWidthMax 1600 \
+    -s format jpeg -s formatOptions 85 "$image" --out "$crop.$$.tmp.jpg" >/dev/null 2>&1; then
+    rm -f "$crop.$$.tmp.jpg"
+    echo "$image"
+    return
+  fi
+  mv "$crop.$$.tmp.jpg" "$crop"
   echo "$crop"
+}
+
+# Build every theme's thumbnail for the current preview size in the
+# background, so moving to a theme shows it without the build. fzf runs
+# this when it starts and on resize, with FZF_PREVIEW_* set; the preview
+# itself sees the same values.
+prewarm_previews() {
+  local name
+  [ -n "${FZF_PREVIEW_COLUMNS:-}" ] || return 0
+  for name in $(theme_names); do
+    cmd_preview "$name" >/dev/null 2>&1 || true
+  done
 }
 
 # --- commands -------------------------------------------------------------
@@ -861,6 +923,18 @@ visible_width() {
   echo "${#plain}"
 }
 
+# The terminal's character cell in pixels ("17x36"), from TIOCGWINSZ; empty
+# when the terminal doesn't report its pixel size.
+cell_pixels() {
+  perl -e '
+    open(my $tty, "<", "/dev/tty") or exit;
+    my $size = "\0" x 8;
+    ioctl($tty, $^O eq "darwin" ? 0x40087468 : 0x5413, $size) or exit;
+    my ($rows, $cols, $width, $height) = unpack("S4", $size);
+    printf "%dx%d\n", $width / $cols, $height / $rows if $rows && $cols && $width && $height;
+  ' 2>/dev/null || true
+}
+
 terminal_columns() {
   local size
   size="$(stty size </dev/tty 2>/dev/null || true)"
@@ -870,12 +944,11 @@ terminal_columns() {
   esac
 }
 
-# Flip the picker's background and show it on the focused theme.
+# Flip the picker's background and show it on the focused theme, in the
+# background like a cursor move.
 pick_toggle_background() {
   other_background "$(pick_background)" >"$THEME_PICK_DIR/background"
-  if [ -n "${1:-}" ] && is_theme "$1"; then
-    live_preview "$1"
-  fi
+  live_preview </dev/null >/dev/null 2>&1 &
 }
 
 cmd_pick() {
@@ -896,6 +969,9 @@ cmd_pick() {
   trap 'live_reset; rm -rf "$PICK_TMP"' EXIT
   trap 'exit 130' INT TERM
   export THEME_PICK_DIR="$PICK_TMP"
+  # part of the thumbnails' cache key (see render_wallpaper)
+  THEME_PICK_CELL="$(cell_pixels)"
+  export THEME_PICK_CELL
   current_background >"$THEME_PICK_DIR/background"
 
   # the live recolor needs passthrough; .tmux.conf sets it, but a server
@@ -907,8 +983,15 @@ cmd_pick() {
   self="$(printf '%q' "$SELF")"
   # the background choice and the keys sit on the top border, the only line
   # spanning the whole width; the list uses ANSI colors (not the theme's hex
-  # fzf colors), so it recolors along with the terminal while browsing
-  local toggle="execute-silent($self __toggle-background {})+transform-border-label($self __label)+refresh-preview"
+  # fzf colors), so it recolors along with the terminal while browsing.
+  # Recoloring and building thumbnails run in the background, so fzf keeps
+  # up with the keys; fzf records the focused theme itself, in key order.
+  local requested live prewarm toggle
+  requested="$(printf '%q' "$THEME_PICK_DIR/live-requested")"
+  live="execute-silent(printf '%s\\n' {} >$requested; $self __live </dev/null >/dev/null 2>&1 &)"
+  prewarm="execute-silent($self __prewarm </dev/null >/dev/null 2>&1 &)"
+  toggle="execute-silent($self __toggle-background)+transform-border-label($self __label)+refresh-preview"
+  find "$(thumbnail_cache)" -type f -mtime +7 -delete 2>/dev/null || true
   selected="$(theme_names | fzf \
     --no-multi --layout reverse --height 100% --info hidden --highlight-line \
     --prompt 'theme > ' --pointer '▌' --gutter ' ' \
@@ -917,8 +1000,9 @@ cmd_pick() {
     --preview "$self preview {}" \
     --preview-window 'right,70%,border-left,noinfo' \
     --bind "load:pos($position)" \
-    --bind "resize:transform-border-label($self __label)" \
-    --bind "focus:execute-silent($self __live {})" \
+    --bind "start:$prewarm" \
+    --bind "resize:transform-border-label($self __label)+$prewarm" \
+    --bind "focus:$live" \
     --bind "tab:$toggle" --bind "btab:$toggle" --bind "ctrl-b:$toggle")" || true
 
   if [ -z "$selected" ]; then
@@ -956,9 +1040,10 @@ main() {
       usage
       ;;
     # internal, called by the picker's fzf
-    __live) live_preview "$@" ;;
+    __live) live_preview ;;
     __label) pick_label ;;
-    __toggle-background) pick_toggle_background "$@" ;;
+    __toggle-background) pick_toggle_background ;;
+    __prewarm) prewarm_previews ;;
     *)
       if is_theme "$command"; then
         cmd_set "$command" "$@"

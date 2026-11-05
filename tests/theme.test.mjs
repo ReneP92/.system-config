@@ -81,6 +81,7 @@ function theme(...args) {
     encoding: "utf8",
     env: {
       HOME: home,
+      TMPDIR: home,
       PATH: `${bin}:/usr/bin:/bin:/opt/homebrew/bin`,
       LANG: "en_US.UTF-8",
       FZF_PREVIEW_COLUMNS: "60",
@@ -229,7 +230,7 @@ function label(columns, background) {
   if (background) writeFileSync(join(dir, "background"), `${background}\n`);
   const result = spawnSync(script, ["__label"], {
     encoding: "utf8",
-    env: { HOME: home, PATH: `${bin}:/usr/bin:/bin`, THEME_PICK_DIR: dir, FZF_COLUMNS: String(columns) },
+    env: { HOME: home, TMPDIR: home, PATH: `${bin}:/usr/bin:/bin`, THEME_PICK_DIR: dir, FZF_COLUMNS: String(columns) },
   });
   assert.equal(result.status, 0, result.stderr);
   return result.stdout.replace(/\x1b\[[0-9;]*m/g, "");

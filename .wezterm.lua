@@ -97,6 +97,14 @@ wezterm.on("user-var-changed", function(window, _, name, value)
 	end
 	local overrides = window:get_config_overrides() or {}
 	local preview = window_backgrounds[value] or {}
+	-- setting overrides reloads the window's config: skip it when nothing
+	-- changes (the picker resends the var with every recolor)
+	if
+		overrides.window_background_opacity == preview.opacity
+		and overrides.macos_window_background_blur == preview.blur
+	then
+		return
+	end
 	overrides.window_background_opacity = preview.opacity
 	overrides.macos_window_background_blur = preview.blur
 	window:set_config_overrides(overrides)
