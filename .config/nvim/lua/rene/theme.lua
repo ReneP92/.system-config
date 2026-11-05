@@ -19,9 +19,9 @@ function M.name()
 end
 
 -- Whether backgrounds should be left transparent so wezterm's translucent
--- window shows through (the default); `theme <name> opaque` turns it off.
+-- window shows through (the default); `theme background solid` turns it off.
 function M.transparent()
-  return read("~/.config/theme/background") ~= "opaque"
+  return read("~/.config/theme/background") ~= "solid"
 end
 
 return M

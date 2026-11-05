@@ -142,7 +142,7 @@ test("set writes the state, links the palette and installs the Claude Code theme
   const { status, stdout } = theme("set", "nightowl");
   assert.equal(status, 0, stdout);
   assert.equal(state("current"), "nightowl");
-  assert.equal(state("background"), "transparent");
+  assert.equal(state("background"), "translucent");
   assert.equal(readlinkSync(join(home, ".config/theme/palette.conf")), join(themesDir, "nightowl.conf"));
   assert.ok(!existsSync(join(home, ".config/theme/tmux-current.conf")), "stale tmux link removed");
   assert.equal(
@@ -153,36 +153,51 @@ test("set writes the state, links the palette and installs the Claude Code theme
 });
 
 test("set keeps the background unless a flag is given", () => {
-  theme("set", "tokyonight", "--opaque");
-  assert.equal(state("background"), "opaque");
+  theme("set", "tokyonight", "--solid");
+  assert.equal(state("background"), "solid");
   theme("set", "rose-pine");
-  assert.equal(state("background"), "opaque");
-  assert.equal(theme("current").stdout, "rose-pine (opaque)\n");
-  theme("set", "rose-pine", "--translucent");
-  assert.equal(state("background"), "transparent");
+  assert.equal(state("background"), "solid");
+  assert.equal(theme("current").stdout, "rose-pine (solid)\n");
+  theme("set", "--translucent", "rose-pine");
+  assert.equal(state("background"), "translucent");
 });
 
-test("the legacy `theme <name> [opaque]` form still switches", () => {
+test("the older background names and the `theme <name> [solid]` form still work", () => {
   assert.equal(theme("tokyonight", "opaque").status, 0);
-  assert.equal(theme("current").stdout, "tokyonight (opaque)\n");
+  assert.equal(state("background"), "solid");
+  assert.equal(theme("current").stdout, "tokyonight (solid)\n");
   assert.equal(theme("nightowl").status, 0);
-  assert.equal(theme("current").stdout, "nightowl (opaque)\n");
+  assert.equal(theme("current").stdout, "nightowl (solid)\n");
+  assert.equal(theme("set", "nightowl", "--transparent").status, 0);
+  assert.equal(state("background"), "translucent");
+  assert.equal(theme("rose-pine", "solid").status, 0);
+  assert.equal(state("background"), "solid");
+});
+
+test("a background saved under the older names is still read", () => {
+  mkdirSync(join(home, ".config/theme"), { recursive: true });
+  writeFileSync(join(home, ".config/theme/background"), "opaque\n");
+  assert.equal(theme("background").stdout, "solid\n");
+  writeFileSync(join(home, ".config/theme/background"), "transparent\n");
+  assert.equal(theme("background").stdout, "translucent\n");
+  theme("background", "toggle");
+  assert.equal(state("background"), "solid");
 });
 
 test("background prints, sets and toggles the background", () => {
   theme("set", "tokyonight");
   assert.equal(theme("background").stdout, "translucent\n");
   theme("background", "toggle");
-  assert.equal(theme("background").stdout, "opaque\n");
+  assert.equal(theme("background").stdout, "solid\n");
   theme("background", "toggle");
   assert.equal(theme("background").stdout, "translucent\n");
-  theme("background", "opaque");
-  assert.equal(state("background"), "opaque");
+  theme("background", "solid");
+  assert.equal(state("background"), "solid");
   assert.equal(state("current"), "tokyonight");
 });
 
 test("unknown themes, commands and options fail without changing state", () => {
-  for (const args of [["set", "solarized"], ["solarized"], ["set"], ["set", "tokyonight", "--bogus"], ["background", "bogus"], ["list", "--bogus"], ["preview"]]) {
+  for (const args of [["set", "solarized"], ["solarized"], ["set"], ["set", "tokyonight", "--bogus"], ["set", "tokyonight", "nightowl"], ["background", "bogus"], ["background", "--solid"], ["list", "--bogus"], ["preview"]]) {
     const { status, stderr } = theme(...args);
     assert.equal(status, 1, args.join(" "));
     assert.match(stderr, /^theme: /, args.join(" "));
@@ -206,4 +221,30 @@ test("preview renders every theme in its own colors, padded to the preview width
       assert.equal([...visible].length, 60, `${name}: line width of ${JSON.stringify(visible)}`);
     }
   }
+});
+
+// The picker's top border label, with the escape sequences removed.
+function label(columns, background) {
+  const dir = mkdtempSync(join(home, "pick-"));
+  if (background) writeFileSync(join(dir, "background"), `${background}\n`);
+  const result = spawnSync(script, ["__label"], {
+    encoding: "utf8",
+    env: { HOME: home, PATH: `${bin}:/usr/bin:/bin`, THEME_PICK_DIR: dir, FZF_COLUMNS: String(columns) },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout.replace(/\x1b\[[0-9;]*m/g, "");
+}
+
+test("the picker label shows the background choice and fills the border", () => {
+  for (const columns of [76, 100, 166]) {
+    const text = label(columns, "translucent");
+    assert.equal([...text].length, columns, `${columns}: ${text}`);
+    assert.match(text, /^ background {2}● translucent {2}○ solid {2}\(tab\) ─+ enter apply · esc cancel $/);
+  }
+  assert.match(label(76, "solid"), /○ translucent {2}● solid/);
+  // without a choice yet, it starts from the saved background
+  theme("background", "solid");
+  assert.match(label(76), /● solid/);
+  // too narrow for the keys: just the choice
+  assert.equal(label(50, "translucent"), " background  ● translucent  ○ solid  (tab) ");
 });

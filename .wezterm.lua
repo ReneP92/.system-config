@@ -45,7 +45,7 @@ local function read_palette()
 end
 
 local palette = read_palette()
-local transparent = read_state("background", "transparent") ~= "opaque"
+local background = read_state("background", "translucent")
 
 if palette and palette.BG then
 	local ansi, brights = {}, {}
@@ -77,13 +77,30 @@ config.enable_tab_bar = false
 
 config.window_decorations = "RESIZE"
 -- Translucent, blurred background so the wallpaper shows through, unless
--- switched with `theme background opaque`. Only cells painted with the default
+-- switched with `theme background solid`. Only cells painted with the default
 -- background are see-through, so nvim, tmux and fzf then use the terminal
 -- default instead of an explicit bg color.
-if transparent then
-	config.window_background_opacity = 0.85
-	config.macos_window_background_blur = 20
-end
+local window_backgrounds = {
+	translucent = { opacity = 0.85, blur = 20 },
+	solid = { opacity = 1.0, blur = 0 },
+}
+local window_background = window_backgrounds[background] or window_backgrounds.translucent
+config.window_background_opacity = window_background.opacity
+config.macos_window_background_blur = window_background.blur
+
+-- The `theme` picker previews the background live: it sets the
+-- THEME_BACKGROUND user var on its pane to "translucent" or "solid" while
+-- browsing, and clears it on exit, going back to the configured one.
+wezterm.on("user-var-changed", function(window, _, name, value)
+	if name ~= "THEME_BACKGROUND" then
+		return
+	end
+	local overrides = window:get_config_overrides() or {}
+	local preview = window_backgrounds[value] or {}
+	overrides.window_background_opacity = preview.opacity
+	overrides.macos_window_background_blur = preview.blur
+	window:set_config_overrides(overrides)
+end)
 
 -- Send the CSI-u sequence for Shift+Enter (key 13, modifier 2) so TUIs like
 -- opencode, whose default input_newline includes shift+return, can tell it

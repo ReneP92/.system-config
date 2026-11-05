@@ -193,6 +193,21 @@ else
   run rm -f "$HOME/.config/theme/tmux-current.conf"
 fi
 
+# The background used to be stored as transparent/opaque; wezterm, tmux,
+# nvim and fzf now read translucent/solid.
+background_state="$HOME/.config/theme/background"
+case "$(cat "$background_state" 2>/dev/null || true)" in
+  transparent) legacy_background=translucent ;;
+  opaque) legacy_background=solid ;;
+  *) legacy_background="" ;;
+esac
+if [ -n "$legacy_background" ]; then
+  echo "  migrate: ~/.config/theme/background ($legacy_background)"
+  if ! $DRY_RUN; then
+    printf '%s\n' "$legacy_background" >"$background_state"
+  fi
+fi
+
 # --- Homebrew packages --------------------------------------------------
 if ! $NO_BREW; then
   echo "==> Installing Homebrew packages"

@@ -83,25 +83,26 @@ WezTerm, tmux, nvim, fzf, Claude Code and the macOS wallpaper share one color th
 - the list shows the available themes, starting on the current one
 - the preview shows each theme's colors on a mock tmux status bar, code and fzf list, its 16 terminal colors and its wallpaper (thumbnails need `chafa`, from the `Brewfile`)
 - the whole terminal window and the tmux status bar recolor live while moving through the list
-- `enter` switches, `esc` restores the colors you had, and `ctrl-b` flips between a translucent and an opaque background
+- the top line chooses the background: `tab` (or `ctrl-b`) flips between translucent and solid, and the window shows the choice live
+- `enter` switches, and `esc` restores the colors and background you had
 
 The other commands (`theme help` lists them, and zsh completes them when its completion system is loaded):
 
 ```
 theme set tokyonight             # switch theme, keeping the background
 theme tokyonight                 # the same, shorter
-theme set nightowl --opaque      # switch and use solid backgrounds
-theme background toggle          # flip translucent / opaque (also: opaque, translucent)
+theme set nightowl --solid       # switch and use solid backgrounds
+theme background toggle          # flip translucent / solid (also: translucent, solid)
 theme current                    # print the current theme
 theme list                       # list the themes, marking the current one
 theme preview rose-pine          # render a theme's preview in the terminal
 ```
 
-By default the background is translucent: WezTerm's window is see-through and blurred, so the wallpaper shows through, and nvim, tmux and fzf paint the terminal's default background instead of their own. Opaque gives every app its solid theme background instead. A switch keeps the current background unless `--opaque` or `--translucent` is given.
+By default the background is translucent: WezTerm's window is see-through and blurred, so the wallpaper shows through, and nvim, tmux and fzf paint the terminal's default background instead of their own. Solid gives every app its theme background instead. A switch keeps the current background unless `--translucent` or `--solid` is given. The older names `opaque` and `transparent` still work.
 
-Each theme is one palette file, `themes/<name>.conf`, the single source of truth for the terminal colors, the tmux status bar roles and the fzf colors. It holds `THEME_KEY="value"` lines, so bash can source it, tmux can `source-file` it and `.wezterm.lua` parses it. The command links the active one to `~/.config/theme/palette.conf` and stores the name in `~/.config/theme/current` and the background (`transparent` or `opaque`) in `~/.config/theme/background`. Each app reads them:
+Each theme is one palette file, `themes/<name>.conf`, the single source of truth for the terminal colors, the tmux status bar roles and the fzf colors. It holds `THEME_KEY="value"` lines, so bash can source it, tmux can `source-file` it and `.wezterm.lua` parses it. The command links the active one to `~/.config/theme/palette.conf` and stores the name in `~/.config/theme/current` and the background (`translucent` or `solid`) in `~/.config/theme/background`. Each app reads them:
 
-- **WezTerm** builds its colors from `palette.conf` and watches the state, so open windows recolor immediately
+- **WezTerm** builds its colors from `palette.conf` and watches the state, so open windows recolor immediately. While the picker is open, it previews the background through a `THEME_BACKGROUND` user var that `.wezterm.lua` applies as a window override
 - **tmux** is reloaded by the command and sources `palette.conf` for the status bar colors. `.tmux.conf` allows passthrough and a larger input buffer, which the picker's live recolor and wallpaper thumbnails need
 - **nvim** reads the name on startup, so already running instances keep their theme until restarted
 - **fzf** colors are set by `.zshrc` from `palette.conf`, so new shells pick up a switch

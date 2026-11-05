@@ -8,7 +8,7 @@
 # THEME_KEY="value" lines (terminal colors, tmux roles, fzf colors). State
 # lives in ~/.config/theme/:
 #   current       the theme name
-#   background    transparent | opaque
+#   background    translucent | solid
 #   palette.conf  symlink to the active themes/<name>.conf
 # and each app reads it:
 #   - wezterm parses palette.conf and watches the state, recoloring open
@@ -42,11 +42,11 @@ usage: theme [<command>] [<args>]
   theme                        pick a theme interactively (prints the current
                                theme when not run in a terminal)
   theme pick                   pick a theme with a live preview
-  theme set <name> [--opaque | --translucent]
+  theme set <name> [--translucent | --solid]
                                switch theme; keeps the current background
                                unless a flag is given
-  theme <name> [opaque]        shorthand for \`theme set\`
-  theme background [opaque | translucent | toggle]
+  theme <name> [solid]         shorthand for \`theme set\`
+  theme background [translucent | solid | toggle]
                                print or switch the background; translucent
                                lets the wallpaper show through
   theme current                print the current theme
@@ -96,12 +96,24 @@ current_name() {
   fi
 }
 
+# The background: translucent (the default) or solid. Also reads the
+# names used before (transparent, opaque) until bootstrap.sh migrates them.
 current_background() {
-  if [ "$(cat "$STATE_DIR/background" 2>/dev/null || true)" = opaque ]; then
-    echo opaque
-  else
-    echo transparent
-  fi
+  parse_background "$(cat "$STATE_DIR/background" 2>/dev/null || true)" || echo translucent
+}
+
+# Normalize a background word, with or without a leading --, accepting the
+# older names; fails on anything else.
+parse_background() {
+  case "${1#--}" in
+    translucent | transparent) echo translucent ;;
+    solid | opaque) echo solid ;;
+    *) return 1 ;;
+  esac
+}
+
+other_background() {
+  if [ "$1" = solid ]; then echo translucent; else echo solid; fi
 }
 
 # Load a theme's palette into THEME_* shell variables.
@@ -289,19 +301,20 @@ send_to_terminal() {
   printf '%s' "$seq" >/dev/tty 2>/dev/null || true
 }
 
-# Recolor the terminal window and the tmux status bar to a theme, without
-# changing any state. The picker starts one of these per cursor move, and
-# they can overlap while the cursor moves quickly; so each records the theme
-# it was asked for, and whichever holds the lock applies the latest request,
-# making the last move win.
+# Show a theme and background on the terminal window and the tmux status
+# bar, without changing any state. In the picker, the background is the one
+# its toggle holds. The picker starts one of these per cursor move or
+# toggle, and they can overlap while the cursor moves quickly; so each
+# records what it was asked for, and whichever holds the lock applies the
+# latest request, making the last move win.
 live_preview() {
   local name="$1" dir="${THEME_PICK_DIR:-}"
   require_theme "$name"
   if [ -z "$dir" ]; then
-    live_recolor "$name"
+    live_recolor "$name" "$(current_background)"
     return
   fi
-  printf '%s\n' "$name" >"$dir/live-requested"
+  printf '%s %s\n' "$name" "$(pick_background)" >"$dir/live-requested"
   live_lock "$dir" || return 0
   # the picker has closed and reset the colors meanwhile
   if [ -e "$dir/closed" ]; then
@@ -309,10 +322,10 @@ live_preview() {
     return 0
   fi
   local requested applied
-  requested="$(cat "$dir/live-requested" 2>/dev/null || echo "$name")"
+  requested="$(cat "$dir/live-requested" 2>/dev/null || true)"
   applied="$(cat "$dir/live-applied" 2>/dev/null || true)"
-  if [ "$requested" != "$applied" ] && is_theme "$requested"; then
-    live_recolor "$requested"
+  if [ -n "$requested" ] && [ "$requested" != "$applied" ] && is_theme "${requested% *}"; then
+    live_recolor "${requested% *}" "${requested#* }"
     printf '%s\n' "$requested" >"$dir/live-applied"
     live_reassert "$dir" "$requested"
   fi
@@ -341,10 +354,29 @@ palette_sequence() {
   printf '%s' "$seq"
 }
 
+# Ask wezterm to show the window solid or translucent (an empty value goes
+# back to the configured background). .wezterm.lua applies the
+# THEME_BACKGROUND user var as a window override.
+background_sequence() {
+  printf '\e]1337;SetUserVar=THEME_BACKGROUND=%s\a' "$(printf '%s' "$1" | base64)"
+}
+
+live_sequence() {
+  palette_sequence "$1"
+  background_sequence "$2"
+}
+
 live_recolor() {
-  send_to_terminal "$(palette_sequence "$1")"
+  local name="$1" background="$2"
+  send_to_terminal "$(live_sequence "$name" "$background")"
   if [ -n "${TMUX:-}" ]; then
-    tmux source-file "$THEMES_DIR/$1.conf" \; source-file ~/.tmux/statusbar.conf 2>/dev/null || true
+    # statusbar.conf picks the bar background from the saved state; give it
+    # the previewed one instead
+    load_palette "$name"
+    local bar_bg=default
+    [ "$background" != solid ] || bar_bg="$THEME_TMUX_BG"
+    tmux source-file "$THEMES_DIR/$name.conf" \; source-file ~/.tmux/statusbar.conf \; \
+      set -g status-style "fg=$THEME_TMUX_FG,bg=$bar_bg" 2>/dev/null || true
   fi
 }
 
@@ -354,28 +386,29 @@ live_recolor() {
 # replay them. So inside tmux, send the colors again once the preview has
 # drawn, unless the cursor has moved on or the picker has closed.
 live_reassert() {
-  local dir="$1" name="$2"
+  local dir="$1" applied="$2"
   [ -n "${TMUX:-}" ] || return 0
   (
     for delay in 0.4 1.2; do
       sleep "$delay"
       [ -d "$dir" ] && live_lock "$dir" || exit 0
-      if [ -e "$dir/closed" ] || [ "$(cat "$dir/live-applied" 2>/dev/null)" != "$name" ]; then
+      if [ -e "$dir/closed" ] || [ "$(cat "$dir/live-applied" 2>/dev/null)" != "$applied" ]; then
         rmdir "$dir/live.lock"
         exit 0
       fi
-      send_to_terminal "$(palette_sequence "$name")"
+      send_to_terminal "$(live_sequence "${applied% *}" "${applied#* }")"
       rmdir "$dir/live.lock"
     done
   ) </dev/null >/dev/null 2>&1 &
 }
 
-# Undo live_preview: back to the colors from the terminal's config. Wait for
-# a recolor in flight, and stop later ones from undoing the reset. Runs from
-# the picker's EXIT trap.
+# Undo live_preview: back to the colors and background from the terminal's
+# config. Wait for a recolor in flight, and stop later ones from undoing the
+# reset. Runs from the picker's EXIT trap.
 # shellcheck disable=SC2329
 live_reset() {
-  local dir="${THEME_PICK_DIR:-}" locked=no reset=$'\e]104\a\e]110\a\e]111\a\e]112\a'
+  local dir="${THEME_PICK_DIR:-}" locked=no reset
+  reset=$'\e]104\a\e]110\a\e]111\a\e]112\a'"$(background_sequence '')"
   if [ -n "$dir" ] && [ -d "$dir" ]; then
     touch "$dir/closed"
     if live_lock "$dir"; then locked=yes; fi
@@ -399,6 +432,14 @@ live_reset() {
 }
 
 # --- preview rendering ----------------------------------------------------
+
+# Count characters, not bytes, when measuring text.
+use_utf8_locale() {
+  case "$(locale charmap 2>/dev/null)" in
+    UTF-8) ;;
+    *) export LC_ALL=en_US.UTF-8 ;;
+  esac
+}
 
 hex_rgb() {
   local hex="${1#\#}"
@@ -461,18 +502,14 @@ render_preview() {
   require_theme "$name"
   load_palette "$name"
 
-  # count characters, not bytes, when measuring the lines
-  case "$(locale charmap 2>/dev/null)" in
-    UTF-8) ;;
-    *) export LC_ALL=en_US.UTF-8 ;;
-  esac
+  use_utf8_locale
 
   PREVIEW_WIDTH="${FZF_PREVIEW_COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
   local height="${FZF_PREVIEW_LINES:-$(tput lines 2>/dev/null || echo 24)}"
   PREVIEW_ROWS=0
   # translucent: leave the terminal default background (the picker recolors
   # it live), so the wallpaper shows through as it will after switching
-  if [ "$background" = opaque ]; then
+  if [ "$background" = solid ]; then
     PREVIEW_BG="$THEME_BG"
   else
     PREVIEW_BG=-
@@ -483,8 +520,6 @@ render_preview() {
   local fg="$THEME_FG" dim="$THEME_ANSI_8" subtle="$THEME_TMUX_FG_DARK"
   local mark=""
   [ "$name" != "$(current_name)" ] || mark="  (current)"
-  local bg_label=translucent
-  [ "$background" != opaque ] || bg_label=opaque
 
   line_start
   seg "$fg" - "  "
@@ -492,13 +527,13 @@ render_preview() {
   seg "$subtle" - "$mark"
   line_end
   line_start
-  seg "$subtle" - "  $name · $bg_label background"
+  seg "$subtle" - "  $name · $background background"
   line_end
   blank_line
 
   # tmux status bar, as laid out by .tmux/statusbar.conf
   local bar_bg="$THEME_TMUX_BG"
-  [ "$background" = opaque ] || bar_bg=-
+  [ "$background" = solid ] || bar_bg=-
   line_start
   seg "$THEME_TMUX_BG" "$THEME_TMUX_BLUE" "  main "
   seg "$fg" "$bar_bg" "  "
@@ -687,8 +722,8 @@ cmd_current() {
   else
     name="$DEFAULT_THEME (default)"
   fi
-  if [ "$(current_background)" = opaque ]; then
-    echo "$name (opaque)"
+  if [ "$(current_background)" = solid ]; then
+    echo "$name (solid)"
   else
     echo "$name"
   fi
@@ -724,12 +759,18 @@ cmd_set() {
   local name="" background=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --opaque | opaque) background=opaque ;;
-      --translucent | --transparent | translucent | transparent) background=transparent ;;
-      -*) usage_error "unknown option for set: $1" ;;
+      -*)
+        background="$(parse_background "$1")" ||
+          usage_error "unknown option for set: $1 (use --translucent or --solid)"
+        ;;
       *)
-        [ -z "$name" ] || usage_error "set takes one theme name"
-        name="$1"
+        # a bare background word after the name: the legacy `<name> opaque`
+        if [ -n "$name" ] && parse_background "$1" >/dev/null; then
+          background="$(parse_background "$1")"
+        else
+          [ -z "$name" ] || usage_error "set takes one theme name"
+          name="$1"
+        fi
         ;;
     esac
     shift
@@ -747,15 +788,15 @@ cmd_background() {
   local background
   case "${1:-}" in
     "")
-      if [ "$(current_background)" = opaque ]; then echo opaque; else echo translucent; fi
+      current_background
       return
       ;;
-    opaque) background=opaque ;;
-    translucent | transparent) background=transparent ;;
-    toggle)
-      if [ "$(current_background)" = opaque ]; then background=transparent; else background=opaque; fi
+    toggle) background="$(other_background "$(current_background)")" ;;
+    -*) usage_error "unknown background: $1 (use translucent, solid or toggle)" ;;
+    *)
+      background="$(parse_background "$1")" ||
+        usage_error "unknown background: $1 (use translucent, solid or toggle)"
       ;;
-    *) usage_error "unknown background: $1 (use opaque, translucent or toggle)" ;;
   esac
 
   local name
@@ -772,25 +813,68 @@ cmd_preview() {
   # inside the picker, follow its background toggle; on its own, paint the
   # theme background so the preview reads correctly in any terminal
   if [ -n "${THEME_PICK_DIR:-}" ]; then
-    background="$(cat "$THEME_PICK_DIR/background" 2>/dev/null || echo transparent)"
+    background="$(pick_background)"
   else
-    background=opaque
+    background=solid
   fi
   render_preview "$1" "$background"
 }
 
-pick_header() {
-  local background
-  background="$(cat "$THEME_PICK_DIR/background" 2>/dev/null || echo transparent)"
-  [ "$background" = opaque ] || background=translucent
-  echo " enter apply · ctrl-b background: $background · esc cancel "
+# The background chosen in the picker.
+pick_background() {
+  parse_background "$(cat "$THEME_PICK_DIR/background" 2>/dev/null || true)" || current_background
 }
 
-pick_toggle_background() {
-  if [ "$(cat "$THEME_PICK_DIR/background" 2>/dev/null)" = opaque ]; then
-    echo transparent >"$THEME_PICK_DIR/background"
+# The picker's top border: the background choice on the left, the keys on
+# the right, joined by a border-colored rule so the line spans the window.
+pick_label() {
+  local background translucent solid left right fill
+  use_utf8_locale
+  background="$(pick_background)"
+  # selected: accent dot and bright text; the other: dim and hollow
+  local on=$'\e[35m●\e[39m \e[1m' off=$'\e[2m○ ' end=$'\e[22m'
+  if [ "$background" = solid ]; then
+    translucent="${off}translucent$end" solid="${on}solid$end"
   else
-    echo opaque >"$THEME_PICK_DIR/background"
+    translucent="${on}translucent$end" solid="${off}solid$end"
+  fi
+  left=" "$'\e[2m'"background$end  $translucent  $solid  "$'\e[2m'"(tab)$end "
+  right=" "$'\e[2m'"enter apply · esc cancel$end "
+  # The label starts after the corner and one rule, and stops one rule
+  # before the closing corner: the window width minus four, which is also
+  # what fzf sets FZF_COLUMNS to (inside its border and padding) when it
+  # reruns this on resize.
+  fill=$(( ${FZF_COLUMNS:-$(($(terminal_columns) - 4))} - $(visible_width "$left") - $(visible_width "$right") ))
+  if [ "$fill" -lt 3 ]; then
+    # too narrow for both: keep the choice, which the keys are about
+    printf '%s' "$left"
+    return
+  fi
+  printf '%s\e[90m%s\e[39m%s' "$left" "$(printf '%*s' "$fill" '' | sed 's/ /─/g')" "$right"
+}
+
+# The width a string takes on screen: its characters without the escape
+# sequences (needs a UTF-8 locale, see use_utf8_locale).
+visible_width() {
+  local plain
+  plain="$(printf '%s' "$1" | sed $'s/\e\\[[0-9;]*m//g')"
+  echo "${#plain}"
+}
+
+terminal_columns() {
+  local size
+  size="$(stty size </dev/tty 2>/dev/null || true)"
+  case "${size#* }" in
+    '' | *[!0-9]*) echo 80 ;;
+    *) echo "${size#* }" ;;
+  esac
+}
+
+# Flip the picker's background and show it on the focused theme.
+pick_toggle_background() {
+  other_background "$(pick_background)" >"$THEME_PICK_DIR/background"
+  if [ -n "${1:-}" ] && is_theme "$1"; then
+    live_preview "$1"
   fi
 }
 
@@ -821,26 +905,28 @@ cmd_pick() {
   fi
 
   self="$(printf '%q' "$SELF")"
-  # the key hints sit on the bottom border, which spans the whole width, and
-  # the list uses ANSI colors (not the theme's hex fzf colors), so it
-  # recolors along with the terminal while browsing
+  # the background choice and the keys sit on the top border, the only line
+  # spanning the whole width; the list uses ANSI colors (not the theme's hex
+  # fzf colors), so it recolors along with the terminal while browsing
+  local toggle="execute-silent($self __toggle-background {})+transform-border-label($self __label)+refresh-preview"
   selected="$(theme_names | fzf \
     --no-multi --layout reverse --height 100% --info hidden --highlight-line \
     --prompt 'theme > ' --pointer '▌' --gutter ' ' \
-    --border rounded --border-label "$(pick_header)" --border-label-pos 0:bottom \
-    --color 'bg:-1,fg:-1,bg+:0,fg+:15,hl:4,hl+:4,gutter:-1,pointer:5,prompt:6,border:8,label:-1:dim,separator:8,scrollbar:8,preview-bg:-1' \
+    --border rounded --border-label "$(pick_label)" --border-label-pos 3 \
+    --color 'bg:-1,fg:-1,bg+:0,fg+:15,hl:4,hl+:4,gutter:-1,pointer:5,prompt:6,border:8,label:-1,separator:8,scrollbar:8,preview-bg:-1' \
     --preview "$self preview {}" \
     --preview-window 'right,70%,border-left,noinfo' \
     --bind "load:pos($position)" \
+    --bind "resize:transform-border-label($self __label)" \
     --bind "focus:execute-silent($self __live {})" \
-    --bind "ctrl-b:execute-silent($self __toggle-background)+transform-border-label($self __header)+refresh-preview")" || true
+    --bind "tab:$toggle" --bind "btab:$toggle" --bind "ctrl-b:$toggle")" || true
 
   if [ -z "$selected" ]; then
     echo "theme: unchanged, $(cmd_current)"
     return 0
   fi
   local background
-  background="$(cat "$THEME_PICK_DIR/background")"
+  background="$(pick_background)"
   check_theme_files "$selected"
   apply_theme "$selected" "$background" yes
   echo "theme: $(cmd_current) (nvim picks it up on next launch)"
@@ -871,8 +957,8 @@ main() {
       ;;
     # internal, called by the picker's fzf
     __live) live_preview "$@" ;;
-    __header) pick_header ;;
-    __toggle-background) pick_toggle_background ;;
+    __label) pick_label ;;
+    __toggle-background) pick_toggle_background "$@" ;;
     *)
       if is_theme "$command"; then
         cmd_set "$command" "$@"

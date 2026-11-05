@@ -100,10 +100,10 @@ source ~/fzf-git.sh/fzf-git.sh
 # .scripts/theme); new shells pick up a switch. The colors come from the
 # active palette (themes/<name>.conf in the repo). With a translucent theme
 # the background is -1 (the terminal default), so wezterm's window shows
-# through; `theme background opaque` uses the theme's solid background.
+# through; `theme background solid` uses the theme's own background.
 if [ -r ~/.config/theme/palette.conf ]; then
   source ~/.config/theme/palette.conf
-  [ "$(command cat ~/.config/theme/background 2>/dev/null)" = opaque ] || THEME_FZF_BG=-1
+  [ "$(command cat ~/.config/theme/background 2>/dev/null)" = solid ] || THEME_FZF_BG=-1
   export FZF_DEFAULT_OPTS="--color=bg:${THEME_FZF_BG},gutter:${THEME_FZF_BG},${THEME_FZF_COLORS}"
   unset -m 'THEME_*'
 fi
@@ -144,7 +144,7 @@ _theme() {
   subcommands=(
     'pick:choose a theme interactively with a live preview'
     'set:switch to a theme'
-    'background:switch between translucent and opaque backgrounds'
+    'background:switch between translucent and solid backgrounds'
     'current:print the current theme'
     'list:list the available themes'
     'preview:render the preview of a theme'
@@ -160,11 +160,11 @@ _theme() {
       if (( CURRENT == 3 )); then
         _values 'theme' ${(f)"$(theme list --names 2>/dev/null)"}
       elif (( CURRENT == 4 )); then
-        _values 'background' --opaque --translucent
+        _values 'background' --translucent --solid
       fi
       ;;
     preview) (( CURRENT == 3 )) && _values 'theme' ${(f)"$(theme list --names 2>/dev/null)"} ;;
-    background) (( CURRENT == 3 )) && _values 'background' opaque translucent toggle ;;
+    background) (( CURRENT == 3 )) && _values 'background' translucent solid toggle ;;
     list) (( CURRENT == 3 )) && _values 'option' --names ;;
   esac
 }
