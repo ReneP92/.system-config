@@ -3,7 +3,7 @@
 -- `cond` picks which one loads.
 local theme_state = require("rene.theme")
 local theme = theme_state.name()
--- translucent unless switched with `theme <name> opaque`
+-- translucent unless switched with `theme background solid`
 local transparent = theme_state.transparent()
 
 return {
