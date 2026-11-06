@@ -38,7 +38,7 @@ const REQUIRED_KEYS = [
   "TMUX_FG",
   "TMUX_FG_DARK",
   "TMUX_YELLOW",
-  "TMUX_ORANGE",
+  "TMUX_RED",
   "TMUX_BLUE",
   "TMUX_GREEN",
   "FZF_BG",

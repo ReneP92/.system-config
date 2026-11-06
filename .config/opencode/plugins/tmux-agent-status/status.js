@@ -5,11 +5,11 @@ export function paneState(context) {
   if (tabs.length) {
     if (tabs.some((tab) => tab.attention || tab.unread === "error"))
       return "waiting";
-    return tabs.some((tab) => tab.busy) ? "busy" : "clear";
+    return tabs.some((tab) => tab.busy) ? "busy" : "idle";
   }
 
   const route = context.ui.router.current();
-  if (route.type !== "session") return "clear";
+  if (route.type !== "session") return "idle";
 
   const sessions = context.data.session;
   const root = sessions.root(route.sessionID);
@@ -20,5 +20,5 @@ export function paneState(context) {
   }
   return [...family].some((id) => sessions.status(id) === "running")
     ? "busy"
-    : "clear";
+    : "idle";
 }
