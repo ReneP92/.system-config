@@ -183,6 +183,17 @@ alias cc="claude code"
 export CLAUDE_CODE_TMUX_TRUECOLOR=1
 
 # ---------------------------------------- cursor agent ---------------------------------------------
+# Cursor's CLI runs on a bundled node, and the process name is all tmux can
+# see, so its tab would read "node". Name the pane for the tab title while it
+# runs (@agent_name, see .tmux/statusbar.conf); `always` clears it however
+# the CLI exits.
+_cursor_agent() {
+  [[ -n $TMUX_PANE ]] || { command "$@"; return }
+  tmux set-option -p -t "$TMUX_PANE" @agent_name cursor
+  { command "$@" } always { tmux set-option -p -t "$TMUX_PANE" -u @agent_name }
+}
+agent() { _cursor_agent agent "$@" }
+cursor-agent() { _cursor_agent cursor-agent "$@" }
 alias ca="agent"
 
 # ------------------------------------------ opencode ------------------------------------------------
