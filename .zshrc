@@ -135,6 +135,10 @@ _fzf_comprun() {
 
 
 # ------------------------------------------ Others -------------------------------------------------
+# Keep only the first copy of each PATH entry: shells started inside tmux (or
+# from another shell) inherit a PATH that already holds everything added here.
+# Both spellings need the flag: the exports below assign the PATH string.
+typeset -U path PATH
 export PATH="$PATH:$(go env GOPATH)/bin"
 export PATH="$PATH:$HOME/.scripts" # theme switcher etc. (linked from .system-config)
 
@@ -186,5 +190,4 @@ alias oc="opencode"
 
 # bun completions
 [ -s "/Users/renepersau/.bun/_bun" ] && source "/Users/renepersau/.bun/_bun"
-export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"

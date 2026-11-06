@@ -237,6 +237,17 @@ else
   curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh
 fi
 
+# The native install updates itself; a Homebrew copy next to it would shadow
+# or lag behind it, so Claude Code is not in the Brewfile.
+if [ -x "$HOME/.local/bin/claude" ]; then
+  echo "  skip:   Claude Code (already installed)"
+elif $DRY_RUN; then
+  echo "  [dry-run] curl -fsSL https://claude.ai/install.sh | bash"
+else
+  echo "  install: Claude Code"
+  curl -fsSL https://claude.ai/install.sh | bash
+fi
+
 if command -v cursor-agent >/dev/null 2>&1 || [ -x "$HOME/.local/bin/cursor-agent" ]; then
   echo "  skip:   Cursor CLI (already installed)"
 elif $DRY_RUN; then
