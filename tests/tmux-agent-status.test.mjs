@@ -33,7 +33,7 @@ test("open tabs aggregate busy and waiting, with waiting taking priority", () =>
   tabs[1].attention = false;
   assert.equal(paneState(ctx), "busy");
   tabs[0].busy = false;
-  assert.equal(paneState(ctx), "clear");
+  assert.equal(paneState(ctx), "idle");
   tabs[1].unread = "error";
   assert.equal(paneState(ctx), "waiting");
 });
@@ -43,20 +43,20 @@ test("events in another terminal cannot change this pane", () => {
     paneState(context({
       running: ["unrelated"], permissions: ["unrelated"], forms: ["unrelated"],
     })),
-    "clear",
+    "idle",
   );
   assert.equal(
     paneState(context({
       tabs: [{ busy: false }], running: ["root"], permissions: ["root"],
     })),
-    "clear",
+    "idle",
   );
 });
 
 test("without tabs, child completion does not clear a running parent", () => {
   assert.equal(paneState(context({ running: ["root"] })), "busy");
   assert.equal(paneState(context({ running: ["child"] })), "busy");
-  assert.equal(paneState(context()), "clear");
+  assert.equal(paneState(context()), "idle");
 });
 
 test("child permission and question requests take priority over running", () => {
@@ -76,9 +76,9 @@ test("child permission and question requests take priority over running", () => 
   );
 });
 
-test("home without open tabs clears the pane", () => {
+test("home without open tabs marks the pane idle", () => {
   assert.equal(
     paneState(context({ route: { type: "home" }, running: ["root"] })),
-    "clear",
+    "idle",
   );
 });

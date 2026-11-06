@@ -68,13 +68,27 @@ These are locally maintained adaptations, not a full gstack installation. They u
 
 ## Agent tmux status
 
-Claude Code, Cursor CLI and OpenCode share the per-pane tmux activity indicator: an animated spinner while busy, a bell when waiting for input, and no icon when idle.
+Claude Code, Cursor CLI and OpenCode share a per-pane tmux activity indicator, shown in the tab next to the agent's name:
 
-Cursor CLI uses `.cursor/hooks.json` and `.cursor/tmux-status.sh` to mark prompt submission as busy and clear the indicator on completion, cancellation, error or session exit. Session startup also clears stale state. Cursor currently exposes no permission-wait hook, so permission prompts retain the busy indicator. Bootstrap links both files into `~/.cursor/`; start a fresh Cursor CLI session after installing them.
+| Symbol | State | Meaning |
+| :- | :- | :- |
+| `○` muted | idle | agent open, nothing to do |
+| `⠹` yellow, animated | busy | working |
+| `●` red | waiting | needs your input: a permission prompt, a question with options, or a plan to approve |
+
+No symbol means no agent in that pane. A pane that is back at a plain shell never shows one, so an agent that died without its exit hook cannot leave a stale symbol. Agents report state through `.tmux/agent-status.sh`; `.tmux/agent-spinner.sh` animates the spinner and runs only while it is needed. Claude Code's native install runs a binary named after its version (`2.1.318`), which tmux reports as the pane command, so the tab maps that back to `claude`.
+
+### Claude Code
+
+The hooks in `.claude/settings.json` mark the session idle on start and when a turn ends, busy on prompt submission and after each tool call, and waiting on permission prompts, `AskUserQuestion`, `ExitPlanMode` and MCP elicitation dialogs. Claude Code fires no hook when you press Esc, so the spinner daemon also reconciles busy and waiting Claude panes about once a second: an `[Request interrupted by user...]` transcript entry, or Claude's working line ("✶ Grooving… (8s · thinking)") missing from the screen for three seconds, means idle; the working line reappearing after an approved permission prompt means busy again.
+
+### Cursor CLI
+
+Cursor CLI uses `.cursor/hooks.json` and `.cursor/tmux-status.sh` to mark prompt submission as busy and turn idle on completion, cancellation or error. Session startup marks it idle and session exit clears the indicator. Cursor currently exposes no permission-wait hook, so permission prompts retain the busy indicator. Its CLI runs on a bundled Node, so its tab shows `node`. Bootstrap links both files into `~/.cursor/`; start a fresh Cursor CLI session after installing them.
 
 ### OpenCode
 
-The V2 plugin in `.config/opencode/plugins/tmux-agent-status/` updates the shared tmux agent indicator from the terminal client. It aggregates open tabs (or the current session family when tabs are off), prioritizes pending questions/permissions, and clears the indicator on unload or exit. The shared server only provides plugin discovery, so other terminals cannot overwrite this pane's state. This integration targets the full-screen TUI.
+The V2 plugin in `.config/opencode/plugins/tmux-agent-status/` updates the shared tmux agent indicator from the terminal client. It aggregates open tabs (or the current session family when tabs are off), prioritizes pending questions/permissions, reports idle while the TUI is open with nothing running, and clears the indicator on unload or exit. The shared server only provides plugin discovery, so other terminals cannot overwrite this pane's state. This integration targets the full-screen TUI.
 
 Re-run `./bootstrap.sh --no-brew` when upgrading from the old single-file plugin. Bootstrap removes the old managed symlink and links the new plugin directory. OpenCode reloads plugins automatically; `/reload` forces a refresh if needed. Run the status regression tests with `node --test tests/tmux-agent-status.test.mjs`.
 
