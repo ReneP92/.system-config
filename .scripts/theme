@@ -662,19 +662,32 @@ render_preview() {
   render_wallpaper "$name" $((height - PREVIEW_ROWS))
 }
 
-# The wallpaper thumbnail, sized to the remaining preview lines (needs
-# chafa).
+# The widest the wallpaper thumbnail gets, in pixels. Sixel images can't be
+# scaled by the terminal, so every pixel travels through fzf, tmux (which
+# parses and re-encodes the image, and again on every redraw, like the one
+# each live recolor causes) and wezterm on every cursor move. A thumbnail as
+# wide as the preview was 2-3.5 megapixels and left the picker seconds
+# behind the keys; this is about a tenth of that.
+THUMBNAIL_WIDTH_PX=800
+
+# The wallpaper thumbnail, below the rest of the preview (needs chafa).
 render_wallpaper() {
-  local name="$1" rows="$2" image format
+  local name="$1" rows_left="$2" image format
   image="$(wallpaper_for "$name")"
-  [ "$rows" -ge 4 ] || return 0
   [ -r "$image" ] || return 0
   command -v chafa >/dev/null 2>&1 || return 0
-  # fzf always puts images at the preview's left edge, so the thumbnail is
-  # full-bleed like the status bar and the selected fzf row above it, and
-  # fills the rest of the preview but the last line (fzf scrolls the preview
-  # when an image touches its bottom edge), which gets the background
-  local size="${PREVIEW_WIDTH}x$((rows - 1))" thumbnail
+  # 16:9 like a display, as wide as the budget allows, and at most down to
+  # one line above the preview's bottom (fzf scrolls the preview when an
+  # image touches its bottom edge), cropping a wider strip when the preview
+  # is short. fzf always puts images at the preview's left edge.
+  local cell cols rows
+  cell="$(thumbnail_cell)"
+  cols=$((THUMBNAIL_WIDTH_PX / ${cell%x*}))
+  [ "$cols" -le "$PREVIEW_WIDTH" ] || cols="$PREVIEW_WIDTH"
+  rows=$((cols * ${cell%x*} * 9 / (16 * ${cell#*x})))
+  [ "$rows" -lt "$rows_left" ] || rows=$((rows_left - 1))
+  [ "$rows" -ge 3 ] || return 0
+  local size="${cols}x$rows" thumbnail
   format="$(thumbnail_format)"
   # chafa sizes pixel images for the terminal's cells, so a font change
   # needs new ones
@@ -685,6 +698,24 @@ render_wallpaper() {
   cat "$thumbnail"
   echo
   blank_line
+  [ "$format" != sixels ] || clear_stale_images "$name"
+}
+
+# tmux 3.8 only drops a sixel image when text overwrites it while autowrap
+# is on, and fzf draws with autowrap off: every thumbnail stays behind the
+# ones drawn over it, up to 20, and tmux re-encodes and resends all of them
+# on each redraw (every live recolor), so the picker gets slower the more
+# themes it has shown. A screen clear does drop them, so once the cursor has
+# rested on a theme for a moment, have fzf clear and repaint the screen,
+# leaving only the thumbnail on show. Fast flipping clears once, at the end.
+clear_stale_images() {
+  local name="$1" dir="${THEME_PICK_DIR:-}" sock="${FZF_SOCK:-}"
+  [ -n "${TMUX:-}" ] && [ -n "$dir" ] && [ -S "$sock" ] && [ "${PREWARMING:-}" != yes ] || return 0
+  (
+    sleep 0.25
+    [ "$(cat "$dir/live-requested" 2>/dev/null)" = "$name" ] && [ ! -e "$dir/closed" ] || exit 0
+    curl -s --max-time 1 --unix-socket "$sock" http -d clear-screen
+  ) </dev/null >/dev/null 2>&1 &
 }
 
 # Sixel, which fzf can place below text (it assumes an iTerm2 image fills the
@@ -698,8 +729,14 @@ thumbnail_format() {
   fi
 }
 
+# The terminal's character cell in pixels ("17x36"), as the picker measured
+# it, else the size chafa assumes for a terminal that doesn't report it.
+thumbnail_cell() {
+  echo "${THEME_PICK_CELL:-10x20}"
+}
+
 # The cache holds each theme's thumbnail as the escape sequence that draws
-# it, per size and format: building one takes 100-200 ms, reading it back
+# it, per size and format: building one takes about 100 ms, reading it back
 # a few. The picker prunes files older than a week when it opens.
 thumbnail_cache() {
   echo "$(tmp_dir)/theme-preview"
@@ -710,16 +747,19 @@ thumbnail_cache() {
 # the picker can build the same one twice at once (its own preview and the
 # ahead-of-time pass).
 make_thumbnail() {
-  local image="$1" out="$2" size="$3" format="$4" crop tmp
+  local image="$1" out="$2" size="$3" format="$4" cell crop tmp
   tmp="$out.$$.tmp"
   mkdir -p "$(dirname "$out")"
-  crop="$(cover_crop "$image" "$out.jpg" "${size%x*}" "${size#*x}")"
+  cell="$(thumbnail_cell)"
+  crop="$(cover_crop "$image" "$out.jpg" $((${size%x*} * ${cell%x*})) $((${size#*x} * ${cell#*x})))"
   # chafa finds the terminal through the controlling tty, and reads its cell
   # size from it to draw pixel images at full resolution. --probe off: it
   # would also query the terminal and wait for the answer, which fzf reads
   # as typed keys instead. --work 1 picks the sixel palette faster and makes
   # the image about a third the size, which looks the same at this size:
-  # tmux has to parse and re-encode every byte on each cursor move
+  # tmux has to parse and re-encode every byte on each cursor move. (The
+  # default noise dither stays: without it the image would be half the size
+  # again, but skies and glows in the wallpapers turn into visible bands.)
   if chafa --probe off --format "$format" --passthrough none --polite on --stretch --work 1 \
     --size "$size" "$crop" </dev/null >"$tmp" 2>/dev/null; then
     mv "$tmp" "$out"
@@ -730,35 +770,45 @@ make_thumbnail() {
   [ -s "$out" ]
 }
 
-# cover_crop <image> <out.jpg> <cols> <rows>: crop the image to the aspect
-# of cols x rows cells, the way CSS background-size: cover does, and print
-# its path; prints the image itself when it can't crop (no sips outside
-# macOS). Cells are as the picker measured them, else twice as tall as wide.
+# cover_crop <image> <out.jpg> <width> <height>: scale the image down to
+# cover width x height pixels and crop it to exactly that, the way CSS
+# background-size: cover does, and print its path; prints the image itself
+# when it can't (no sips outside macOS). chafa then draws it pixel for pixel
+# instead of resampling the full-size wallpaper.
 cover_crop() {
-  local image="$1" crop="$2" cols="$3" rows="$4"
+  local image="$1" crop="$2" box_w="$3" box_h="$4"
   command -v sips >/dev/null 2>&1 || {
     echo "$image"
     return
   }
-  local size image_w image_h crop_w crop_h cell="${THEME_PICK_CELL:-1x2}"
+  local size image_w image_h scaled_w scaled_h tmp="$crop.$$.tmp.jpg"
   size="$(sips -g pixelWidth -g pixelHeight "$image" 2>/dev/null | awk '/pixel/ { print $2 }' | paste -sd ' ' -)"
   image_w="${size% *}"
   image_h="${size#* }"
-  # the box in pixels; keep the image's full width or full height
-  local box_w=$((cols * ${cell%x*})) box_h=$((rows * ${cell#*x}))
-  crop_w="$image_w"
-  crop_h=$((image_w * box_h / box_w))
-  if [ "$crop_h" -gt "$image_h" ]; then
-    crop_h="$image_h"
-    crop_w=$((image_h * box_w / box_h))
+  case "$image_w$image_h" in
+    '' | *[!0-9]*)
+      echo "$image"
+      return
+      ;;
+  esac
+  # fit the box's height and overflow its width, or the other way round
+  # (rounded up, so the scaled image never falls short of the box)
+  if [ $((image_w * box_h)) -ge $((image_h * box_w)) ]; then
+    scaled_h="$box_h"
+    scaled_w=$(((image_w * box_h + image_h - 1) / image_h))
+  else
+    scaled_w="$box_w"
+    scaled_h=$(((image_h * box_w + image_w - 1) / image_w))
   fi
-  if ! sips --cropToHeightWidth "$crop_h" "$crop_w" --resampleHeightWidthMax 1600 \
-    -s format jpeg -s formatOptions 85 "$image" --out "$crop.$$.tmp.jpg" >/dev/null 2>&1; then
-    rm -f "$crop.$$.tmp.jpg"
+  # two passes: given both, sips doesn't reliably resample before cropping
+  if ! sips --resampleHeightWidth "$scaled_h" "$scaled_w" -s format jpeg -s formatOptions 90 \
+    "$image" --out "$tmp" >/dev/null 2>&1 ||
+    ! sips --cropToHeightWidth "$box_h" "$box_w" "$tmp" >/dev/null 2>&1; then
+    rm -f "$tmp"
     echo "$image"
     return
   fi
-  mv "$crop.$$.tmp.jpg" "$crop"
+  mv "$tmp" "$crop"
   echo "$crop"
 }
 
@@ -769,6 +819,8 @@ cover_crop() {
 prewarm_previews() {
   local name
   [ -n "${FZF_PREVIEW_COLUMNS:-}" ] || return 0
+  # nothing is drawn, so there is nothing to clear (see clear_stale_images)
+  PREWARMING=yes
   for name in $(theme_names); do
     cmd_preview "$name" >/dev/null 2>&1 || true
   done
@@ -986,6 +1038,8 @@ cmd_pick() {
   # fzf colors), so it recolors along with the terminal while browsing.
   # Recoloring and building thumbnails run in the background, so fzf keeps
   # up with the keys; fzf records the focused theme itself, in key order.
+  # It listens on a socket in the picker's directory so the preview can ask
+  # it to clear the screen (see clear_stale_images).
   local requested live prewarm toggle
   requested="$(printf '%q' "$THEME_PICK_DIR/live-requested")"
   live="execute-silent(printf '%s\\n' {} >$requested; $self __live </dev/null >/dev/null 2>&1 &)"
@@ -996,6 +1050,7 @@ cmd_pick() {
     --no-multi --layout reverse --height 100% --info hidden --highlight-line \
     --prompt 'theme > ' --pointer '▌' --gutter ' ' \
     --border rounded --border-label "$(pick_label)" --border-label-pos 3 \
+    --listen "$THEME_PICK_DIR/fzf.sock" \
     --color 'bg:-1,fg:-1,bg+:0,fg+:15,hl:4,hl+:4,gutter:-1,pointer:5,prompt:6,border:8,label:-1,separator:8,scrollbar:8,preview-bg:-1' \
     --preview "$self preview {}" \
     --preview-window 'right,70%,border-left,noinfo' \
