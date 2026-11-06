@@ -15,7 +15,7 @@ Requires [Homebrew](https://brew.sh) unless `--no-brew` is passed - the script e
 The script:
 
 - symlinks all dotfiles into `~` - anything already there is moved to `~/.dotfiles-backup/<timestamp>/` first
-- installs all Homebrew packages from the `Brewfile` (codex, claude-code, docker-desktop, wezterm, maccy, rectangle, font-meslo-lg-nerd-font, tmux, neovim, node, go, fzf, ripgrep, eza, bat, chafa, fd, zoxide, gh, git-delta, lazygit, lazydocker, tree, tlrc, zsh-autosuggestions, zsh-syntax-highlighting)
+- installs all Homebrew packages from the `Brewfile` (codex, docker-desktop, wezterm, maccy, rectangle, font-meslo-lg-nerd-font, tmux, neovim, node, go, fzf, ripgrep, eza, bat, chafa, fd, zoxide, gh, git-delta, lazygit, lazydocker, tree, tlrc, zsh-autosuggestions, zsh-syntax-highlighting)
 - clones external dependencies if missing:
   - [powerlevel10k](https://github.com/romkatv/powerlevel10k) → `~/powerlevel10k`
   - [fzf-git.sh](https://github.com/junegunn/fzf-git.sh) → `~/fzf-git.sh`
@@ -24,6 +24,8 @@ The script:
 - installs [Bun](https://bun.sh/) through Homebrew
 - installs standalone binaries if missing:
   - [treehouse](https://kunchenguid.github.io/treehouse) via `curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh`
+  - [Claude Code](https://code.claude.com) via `curl -fsSL https://claude.ai/install.sh | bash` (the native install, which updates itself)
+  - [Cursor CLI](https://cursor.com/cli) via `curl https://cursor.com/install -fsS | bash`
 
 The nvim config lives in this repo at `.config/nvim` and is linked as a whole directory to `~/.config/nvim`.
 
