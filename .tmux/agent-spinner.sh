@@ -14,7 +14,8 @@
 #    - Esc while still thinking: the prompt is put back in the input box and
 #      nothing is written at all. Claude's working line ("✶ Grooving… (8s ·
 #      thinking)") disappears, so a busy pane without it for 3 checks in a
-#      row -> idle.
+#      row -> idle. Between turns, "✻ Waiting for 2 background agents to
+#      finish" counts as working too (see agent-status.sh).
 #    - A permission prompt was approved and the tool is running: PostToolUse
 #      only fires once it finishes, but the working line is back -> busy.
 
@@ -41,9 +42,26 @@ interrupted() {
     | startswith("[Request interrupted by user")' 2>/dev/null
 }
 
-# Whether Claude's working line is on the pane's screen.
+# Whether Claude's live working line, or its line waiting on background
+# agents, is on the pane's screen. Both sit in the few lines above the input
+# box, whose top border is the second-to-last ─ rule; only that area counts,
+# since copies of these lines linger in the scrollback (and tool output).
+# Without a visible input box (e.g. a full-screen view), the whole screen is
+# searched instead.
 working() {
-  tmux capture-pane -p -t "$1" 2>/dev/null | grep -qE '^[^ ]+ [^ ].*… \([0-9]+[smh]'
+  tmux capture-pane -p -t "$1" 2>/dev/null | awk '
+    function live(s) {
+      return s ~ /^[^ ]+ ([^ ].*… \([0-9]+[smh]|Waiting for [0-9]+ background agents? to finish)/
+    }
+    { line[NR] = $0 }
+    /^─/ { top = bottom; bottom = NR }
+    END {
+      from = top ? top - 4 : 1
+      to = top ? top - 1 : NR
+      for (n = (from > 1 ? from : 1); n <= to; n++)
+        if (live(line[n])) exit 0
+      exit 1
+    }'
 }
 
 set_state() {
