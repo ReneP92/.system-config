@@ -42,9 +42,12 @@ if [ "$event" = UserPromptSubmit ] ||
 fi
 
 # The daemon animates busy panes and watches busy/waiting ones for
-# interrupts. Checked on every call so a daemon that died gets replaced.
+# interrupts. Checked on every call so a daemon that died gets replaced. The
+# pattern can't match a pgrep command line, so concurrent hook runs (Cursor
+# runs several per event) can't mistake each other's check for the daemon;
+# the daemon's own lock keeps a second copy from running.
 if { [ "$state" = busy ] || [ "$state" = waiting ]; } &&
-  ! pgrep -f agent-spinner.sh >/dev/null 2>&1; then
-  nohup "$HOME/.tmux/agent-spinner.sh" >/dev/null 2>&1 &
+  ! pgrep -f '[/]agent-spinner[.]sh$' >/dev/null 2>&1; then
+  nohup "$HOME/.tmux/agent-spinner.sh" </dev/null >/dev/null 2>&1 &
 fi
 exit 0
