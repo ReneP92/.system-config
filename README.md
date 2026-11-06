@@ -84,7 +84,7 @@ The hooks in `.claude/settings.json` mark the session idle on start and when a t
 
 ### Cursor CLI
 
-Cursor CLI uses `.cursor/hooks.json` and `.cursor/tmux-status.sh` to mark prompt submission as busy and turn idle on completion, cancellation or error. Session startup marks it idle and session exit clears the indicator. Cursor currently exposes no permission-wait hook, so permission prompts retain the busy indicator. Its CLI runs on a bundled Node, so its tab shows `node`. Bootstrap links both files into `~/.cursor/`; start a fresh Cursor CLI session after installing them.
+Cursor CLI uses `.cursor/hooks.json` and `.cursor/tmux-status.sh` to mark prompt submission as busy and turn idle on completion, cancellation or error. Session startup marks it idle and session exit clears the indicator. Cursor currently exposes no permission-wait hook, so permission prompts retain the busy indicator. Its CLI runs on a bundled Node, the only process name tmux can see, so `.zshrc` wraps `agent` and `cursor-agent` to name the pane `cursor` while it runs. Bootstrap links both files into `~/.cursor/`; start a fresh Cursor CLI session after installing them.
 
 ### OpenCode
 
