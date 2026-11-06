@@ -17,6 +17,17 @@
 #      row -> idle.
 #    - A permission prompt was approved and the tool is running: PostToolUse
 #      only fires once it finishes, but the working line is back -> busy.
+
+# One daemon per tmux server: hooks can start it from several processes at
+# once. The flock sits on fd 9's open file, which the shell keeps for its
+# lifetime, so it is released however the daemon exits (even kill -9) and
+# never goes stale. If the lock can't be set up, run unguarded rather than
+# leave the spinner frozen.
+if [ -n "$TMUX" ] && exec 9>>"${TMUX%%,*}.agent-spinner.lock"; then
+  perl -MFcntl=:flock -e 'open(my $fh, ">&=", 9) or exit 2; flock($fh, LOCK_EX | LOCK_NB) or exit 1'
+  [ $? -eq 1 ] && exit 0
+fi 2>/dev/null
+
 frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
 i=0
 
