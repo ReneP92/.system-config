@@ -77,6 +77,10 @@ afterEach(() => {
 });
 
 function theme(...args) {
+  return themeWithEnv({}, ...args);
+}
+
+function themeWithEnv(env, ...args) {
   const result = spawnSync(script, args, {
     encoding: "utf8",
     env: {
@@ -86,6 +90,7 @@ function theme(...args) {
       LANG: "en_US.UTF-8",
       FZF_PREVIEW_COLUMNS: "60",
       FZF_PREVIEW_LINES: "30",
+      ...env,
     },
   });
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
@@ -222,6 +227,39 @@ test("preview renders every theme in its own colors, padded to the preview width
       assert.equal([...visible].length, 60, `${name}: line width of ${JSON.stringify(visible)}`);
     }
   }
+});
+
+const hasChafa = spawnSync("sh", ["-c", "PATH=/usr/bin:/bin:/opt/homebrew/bin command -v chafa"]).status === 0;
+
+// Every pixel of the sixel thumbnail goes through tmux and wezterm on each
+// cursor move in the picker, so it has to stay small however large the
+// preview is.
+test("the wallpaper thumbnail stays within its pixel budget", { skip: !hasChafa && "needs chafa" }, () => {
+  const sixel = (stdout) => {
+    const match = stdout.match(/\x1bP[0-9;]*q"1;1;(\d+);(\d+)/);
+    assert.ok(match, "a sixel image");
+    return { width: Number(match[1]), height: Number(match[2]) };
+  };
+  const cache = () => readdirSync(join(home, "theme-preview")).sort();
+  const wezterm = { TERM_PROGRAM: "WezTerm", FZF_PREVIEW_COLUMNS: "160", THEME_PICK_CELL: "17x36" };
+
+  // a tall preview: 800 px wide (47 cells of 17 px), 16:9
+  let result = themeWithEnv({ ...wezterm, FZF_PREVIEW_LINES: "50" }, "preview", "tokyonight");
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(sixel(result.stdout).width <= 800);
+  assert.deepEqual(cache(), ["tokyonight-47x12-17x36.sixels"]);
+
+  // a short one: as wide, cropped to the lines left above the bottom one
+  result = themeWithEnv({ ...wezterm, FZF_PREVIEW_LINES: "30" }, "preview", "tokyonight");
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(sixel(result.stdout).width <= 800);
+  assert.ok(cache().includes("tokyonight-47x8-17x36.sixels"), cache().join(" "));
+
+  // no measured cell: chafa's own guess
+  rmSync(join(home, "theme-preview"), { recursive: true });
+  result = themeWithEnv({ ...wezterm, THEME_PICK_CELL: "", FZF_PREVIEW_LINES: "50" }, "preview", "rose-pine");
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(cache(), ["rose-pine-80x22-cell.sixels"]);
 });
 
 // The picker's top border label, with the escape sequences removed.
