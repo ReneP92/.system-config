@@ -4,16 +4,25 @@
 # Usage: agent-status.sh <idle|busy|waiting|clear>
 # (clear unsets the state: no agent in this pane)
 #
-# Claude Code hooks also pass their JSON input on stdin. Its transcript_path
-# is remembered for busy/waiting so ~/.tmux/agent-spinner.sh can spot an Esc
-# interrupt, which fires no hook at all.
+# Claude Code hooks also pass their JSON input on stdin:
+# - transcript_path is remembered for busy/waiting so ~/.tmux/agent-spinner.sh
+#   can spot an Esc interrupt, which fires no hook at all.
+# - Stop lists the session's background_tasks. While background subagents or
+#   workflows still run, the agent is working for you, so the pane stays busy;
+#   Claude wakes up when they finish, and that turn's Stop sets idle. Shells
+#   and monitors don't count: a dev server or `tail -f` may never finish.
 [ -n "$TMUX" ] && [ -n "$TMUX_PANE" ] || exit 0
 state=$1
 [ "$state" = clear ] && state=
-event='' transcript=''
+event='' transcript='' agents=0
 if [ ! -t 0 ]; then
-  IFS=$'\t' read -r event transcript < <(jq -r '[.hook_event_name // "", .transcript_path // ""] | @tsv' 2>/dev/null)
+  # unit-separated: bash merges runs of whitespace separators like tabs
+  IFS=$'\x1f' read -r event transcript agents < <(jq -r '[
+      .hook_event_name // "", .transcript_path // "",
+      ([.background_tasks[]? | select(.type == "subagent" or .type == "workflow")] | length | tostring)
+    ] | join("\u001f")' 2>/dev/null)
 fi
+[ "$event" = Stop ] && [ "${agents:-0}" -gt 0 ] 2>/dev/null && state=busy
 [ "$state" = busy ] || [ "$state" = waiting ] || transcript=
 
 # Some hooks fire on every tool call; only write when the state changes, or

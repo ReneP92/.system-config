@@ -80,7 +80,7 @@ No symbol means no agent in that pane. A pane that is back at a plain shell neve
 
 ### Claude Code
 
-The hooks in `.claude/settings.json` mark the session idle on start and when a turn ends, busy on prompt submission and after each tool call, and waiting on permission prompts, `AskUserQuestion`, `ExitPlanMode` and MCP elicitation dialogs. Claude Code fires no hook when you press Esc, so the spinner daemon also reconciles busy and waiting Claude panes about once a second: an `[Request interrupted by user...]` transcript entry, or Claude's working line ("✶ Grooving… (8s · thinking)") missing from the screen for three seconds, means idle; the working line reappearing after an approved permission prompt means busy again.
+The hooks in `.claude/settings.json` mark the session idle on start and when a turn ends (unless background subagents or workflows are still running, which keeps it busy until Claude reports back), busy on prompt submission and after each tool call, and waiting on permission prompts, `AskUserQuestion`, `ExitPlanMode` and MCP elicitation dialogs. Claude Code fires no hook when you press Esc, so the spinner daemon also reconciles busy and waiting Claude panes about once a second: an `[Request interrupted by user...]` transcript entry, or Claude's working line ("✶ Grooving… (8s · thinking)") missing from the screen for three seconds, means idle; the working line reappearing after an approved permission prompt means busy again. While Claude waits on background agents, its "✻ Waiting for 2 background agents to finish" line counts as working. Only the live status area just above the input box is read, since copies of these lines linger in the scrollback.
 
 ### Cursor CLI
 
