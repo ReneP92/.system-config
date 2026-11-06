@@ -4,7 +4,9 @@
 #
 # 1. Cycles @agent_spinner_frame for busy panes. tmux throttles #() job
 #    output to one status update per second, so the animation is driven by
-#    option writes + explicit status-only refreshes, which are not throttled.
+#    option writes instead: setting any option redraws every client, status
+#    line included. (No `refresh-client -S` on top: it would also kill and
+#    restart every #() job in the status line on each frame.)
 # 2. About once a second, reconciles Claude Code panes (the ones with a
 #    transcript) with what Claude is actually doing, covering moments that
 #    fire no hook:
@@ -106,9 +108,6 @@ while list=$(panes) && [ -n "$list" ]; do
     done <<<"$list"
   fi
   tmux set-option -g @agent_spinner_frame "${frames[i % ${#frames[@]}]}"
-  while IFS= read -r client; do
-    tmux refresh-client -S -t "$client" 2>/dev/null
-  done < <(tmux list-clients -F '#{client_name}' 2>/dev/null)
   i=$(( (i + 1) % 70 ))
   sleep 0.15
 done
