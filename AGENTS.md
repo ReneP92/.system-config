@@ -11,3 +11,11 @@
   If something clearly looks off, even if it is not directly related to what you are doing, try to get it fixed along the way.
 - Apply that same high standard to engineering excellence: lint, test failures, and test flakiness.
   If you see one, even if it is not caused by what you are working on right now, still get it fixed.
+
+## Sub-agents
+
+- Delegate broad codebase sweeps, independent parallel workstreams, and fresh-eyes reviews of a diff or plan.
+- Do not delegate known-file lookups, edits that depend on conversation context, or sequential dependent steps.
+- Subagents do not see this conversation: brief them fully (goal, target, constraints, what "done" means, what to return).
+- Treat subagent findings as leads, not facts. Verify key claims (path:line, repro results) yourself before acting on or reporting them.
+- Bug root causes still come from an E2E reproduction, never from a subagent's code reading alone.

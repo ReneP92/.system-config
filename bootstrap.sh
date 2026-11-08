@@ -97,14 +97,16 @@ link_agent_skills() {
   done
 }
 
-# Install just the shared skills and OpenCode slash-command adapters. All
-# three agents discover ~/.claude/skills; their workflows have one source.
+# Install just the shared skills, OpenCode slash-command adapters and the
+# subagents (plus their hooks) the skills hand off to. All three agents
+# discover ~/.claude/skills; their workflows have one source.
 if $SKILLS_ONLY; then
   echo "==> Linking shared agent skills from $REPO_DIR"
   link_agent_skills
   while IFS= read -r src; do
     link_file "$src" "${src#"$REPO_DIR"/}"
-  done < <(find "$REPO_DIR/.config/opencode/commands" -type f -print | sort)
+  done < <(find "$REPO_DIR/.config/opencode/commands" "$REPO_DIR/.config/opencode/agents" \
+    "$REPO_DIR/.claude/agents" "$REPO_DIR/.claude/hooks" -type f -print | sort)
   echo "==> Done: $linked linked, $skipped skipped, $backed_up backed up"
   if [ "$backed_up" -gt 0 ] && ! $DRY_RUN; then
     echo "    Backups saved to $BACKUP_DIR"
