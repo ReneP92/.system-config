@@ -14,6 +14,7 @@ Read applicable repository instructions. Review by default; apply fixes only whe
 2. For a branch review, determine the intended base and merge base from repository/PR metadata. Report a stale or unavailable remote base rather than treating a failed fetch as an empty diff. Do not fetch in a mode that forbids writes to Git metadata.
 3. Include relevant staged, unstaged and non-ignored untracked source when reviewing work in progress. Being on the default branch does not mean there is nothing to review. Preserve user changes.
 4. Read the complete selected diff, then affected callers, contracts and tests. If the candidate is too large to cover, report the covered paths and remainder instead of claiming a complete review.
+5. If the host offers a `fresh-eyes-reviewer` subagent, start it now, before your own review, unless the candidate is a single small change (one file and under about 30 changed lines) that touches no auth, data, money, concurrency or other security boundary. It cannot see this conversation, so brief it with the goal of the change, the base and range or paths, the repository instructions that matter and any `--report-only` restriction. Treat its findings as leads: confirm each one yourself before reporting it, and drop the ones you cannot confirm. If you skip it, say why under coverage limits.
 
 ## Review
 
@@ -30,7 +31,7 @@ Use Critical for severe exposure or data loss, High for major broken behavior, M
 
 ## If fixing is requested
 
-Reproduce first, then make a root-cause repair consistent with repository patterns. Do not manually edit changelogs or generated files. Do not silence failures by deleting assertions, raising timeouts or changing snapshots without establishing the correct behavior. Run relevant checks and inspect the final diff, including newly introduced regressions. No mandatory second model or subagent is needed.
+Reproduce first, then make a root-cause repair consistent with repository patterns. Do not manually edit changelogs or generated files. Do not silence failures by deleting assertions, raising timeouts or changing snapshots without establishing the correct behavior. Run relevant checks and inspect the final diff, including newly introduced regressions. Only you apply fixes; the independent reviewer stays read-only.
 
 ## Output
 

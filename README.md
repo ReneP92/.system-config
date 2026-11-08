@@ -29,7 +29,7 @@ The script:
 
 The nvim config lives in this repo at `.config/nvim` and is linked as a whole directory to `~/.config/nvim`.
 
-Flags: `--dry-run` previews all actions without changing anything, `--no-brew` skips package installation, and `--skills-only` installs just the shared agent skills and OpenCode commands without requiring Homebrew or running other setup steps. Re-running is safe - anything already linked is skipped.
+Flags: `--dry-run` previews all actions without changing anything, `--no-brew` skips package installation, and `--skills-only` installs just the shared agent skills, OpenCode commands and the fresh-eyes reviewer subagent without requiring Homebrew or running other setup steps. Re-running is safe - anything already linked is skipped.
 
 To add a new config file, place it in the repo (dot-prefixed, at the path it should have relative to `~`) and re-run `./bootstrap.sh`.
 
@@ -63,6 +63,10 @@ Use `/eng-review` instead of `/review` to avoid built-in command collisions, inc
 All skills respect the active agent/mode restrictions. Specs stay in chat unless a file or issue is requested; issue filing can use GitHub or Linear. Shipping follows repository-native release automation, does not manually edit changelogs/generated files, and never adds the agent as a co-author. `/careful` is guidance only, with no blocking hooks or persistent safety mode.
 
 After installing, use Claude Code's `/reload-skills` if the new directory is not yet visible, OpenCode's `/reload` if needed, or a fresh Cursor CLI session. OpenCode also supports explicit skill mentions such as `@eng-review`. Project definitions can shadow these skills according to each host's precedence rules.
+
+### Fresh-eyes reviewer subagent
+
+`/eng-review` and `/plan-eng-review` hand non-trivial reviews to a read-only `fresh-eyes-reviewer` subagent that runs in parallel and sees only its brief, not the conversation that produced the work. The skill then verifies each of its findings before reporting them. The canonical definition is `.claude/agents/fresh-eyes-reviewer.md`, linked to `~/.claude/agents/`. It reuses the eng-review checklist and plan-eng-review dimensions instead of copying them. In Claude Code its Bash calls pass through `.claude/hooks/readonly-guard.mjs`, which allows read-only git and gh commands and blocks git writes, package installs and nested shells. File writes and output redirection are allowed only to absolute temporary paths (`/tmp`, `/var/folders`), so repro scripts work but the repo under review stays untouched. The guard prevents accidents but is not a sandbox. OpenCode uses the thin adapter `.config/opencode/agents/fresh-eyes-reviewer.md`, which points at the same instructions and denies edits and git writes through permission rules. Run the guard tests with `node --test tests/readonly-guard.test.mjs`.
 
 These are locally maintained adaptations, not a full gstack installation. They use available native tools without a required browser package, external reviewer, telemetry or auto-updater. Upstream provenance and the MIT license are recorded in `.claude/skills/NOTICE.txt` and `.claude/skills/LICENSE.txt`. Review upstream improvements selectively and update the recorded revision when incorporating them.
 

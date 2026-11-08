@@ -13,6 +13,7 @@ Review the plan in the conversation or the target the user names. If several tar
 1. State the goal, target and important constraints in a few lines. Separate observed behavior, proposed behavior and assumptions.
 2. Trace the existing entry points, interfaces, storage and tests the plan would touch. Check whether a built-in, dependency or existing component already solves the problem.
 3. Challenge unnecessary scope and accidental complexity. Prefer quality, simplicity, robustness, scalability and long-term maintainability over development-cost estimates. Similar-looking code alone does not justify an abstraction.
+4. If the host offers a `fresh-eyes-reviewer` subagent, start it now so it reviews in parallel with you, unless the plan is a single small change confined to one component with no interface, data or security impact. It cannot see this conversation, so brief it with the full plan text, the goal, the constraints and the code areas involved. Treat its findings as leads: confirm each against the plan and code before reporting it, and drop the ones you cannot confirm. If you skip it, say why in the report.
 
 ## Review four dimensions
 
