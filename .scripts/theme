@@ -708,13 +708,20 @@ render_wallpaper() {
 # themes it has shown. A screen clear does drop them, so once the cursor has
 # rested on a theme for a moment, have fzf clear and repaint the screen,
 # leaving only the thumbnail on show. Fast flipping clears once, at the end.
+# The preview is hidden for the repaint and shown again after it: fzf would
+# send the thumbnail before erasing the preview's lines, which wipes it off
+# the screen (while tmux keeps it, so it only came back on the next redraw).
+# Showing the preview runs it again, which doesn't clear a second time; the
+# focus binding and the background toggle drop that marker.
 clear_stale_images() {
   local name="$1" dir="${THEME_PICK_DIR:-}" sock="${FZF_SOCK:-}"
   [ -n "${TMUX:-}" ] && [ -n "$dir" ] && [ -S "$sock" ] && [ "${PREWARMING:-}" != yes ] || return 0
+  [ "$(cat "$dir/cleared" 2>/dev/null)" != "$name" ] || return 0
   (
     sleep 0.25
     [ "$(cat "$dir/live-requested" 2>/dev/null)" = "$name" ] && [ ! -e "$dir/closed" ] || exit 0
-    curl -s --max-time 1 --unix-socket "$sock" http -d clear-screen
+    echo "$name" >"$dir/cleared"
+    curl -s --max-time 1 --unix-socket "$sock" http -d hide-preview+clear-screen+show-preview
   ) </dev/null >/dev/null 2>&1 &
 }
 
@@ -1000,6 +1007,8 @@ terminal_columns() {
 # background like a cursor move.
 pick_toggle_background() {
   other_background "$(pick_background)" >"$THEME_PICK_DIR/background"
+  # the preview fzf redraws next may clear the screen again
+  rm -f "$THEME_PICK_DIR/cleared"
   live_preview </dev/null >/dev/null 2>&1 &
 }
 
@@ -1040,9 +1049,10 @@ cmd_pick() {
   # up with the keys; fzf records the focused theme itself, in key order.
   # It listens on a socket in the picker's directory so the preview can ask
   # it to clear the screen (see clear_stale_images).
-  local requested live prewarm toggle
+  local requested cleared live prewarm toggle
   requested="$(printf '%q' "$THEME_PICK_DIR/live-requested")"
-  live="execute-silent(printf '%s\\n' {} >$requested; $self __live </dev/null >/dev/null 2>&1 &)"
+  cleared="$(printf '%q' "$THEME_PICK_DIR/cleared")"
+  live="execute-silent(printf '%s\\n' {} >$requested; rm -f $cleared; $self __live </dev/null >/dev/null 2>&1 &)"
   prewarm="execute-silent($self __prewarm </dev/null >/dev/null 2>&1 &)"
   toggle="execute-silent($self __toggle-background)+transform-border-label($self __label)+refresh-preview"
   find "$(thumbnail_cache)" -type f -mtime +7 -delete 2>/dev/null || true
