@@ -114,7 +114,7 @@
     }
   },
   "tui": "fullscreen",
-  "theme": "custom:active",
+  "theme": "dark-ansi",
   "autoMode": {
     "allow": [
       "$defaults",
