@@ -202,3 +202,4 @@ alias oc="opencode"
 # bun completions
 [ -s "/Users/renepersau/.bun/_bun" ] && source "/Users/renepersau/.bun/_bun"
 export PATH="$HOME/.local/bin:$PATH"
+eval "$(direnv hook zsh)"
