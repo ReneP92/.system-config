@@ -259,6 +259,34 @@ else
   curl https://cursor.com/install -fsS | bash
 fi
 
+# --- Claude Code MCP servers --------------------------------------------
+# Claude Code keeps user-scoped MCP servers in ~/.claude.json, next to app
+# state it rewrites constantly, so that file can't be linked. Register each
+# server from the repo's list instead, re-adding any whose config drifted.
+# Servers added by hand and missing from the list are left alone.
+echo "==> Registering Claude Code MCP servers"
+claude_bin="$(command -v claude || echo "$HOME/.local/bin/claude")"
+mcp_servers="$REPO_DIR/assets/claude-mcp-servers.json"
+if [ ! -x "$claude_bin" ]; then
+  echo "  skip:   MCP servers (Claude Code not installed)"
+else
+  while IFS= read -r name; do
+    want="$(jq -cS --arg name "$name" '.mcpServers[$name]' "$mcp_servers")"
+    have="$(jq -cS --arg name "$name" '.mcpServers[$name] // empty' "$HOME/.claude.json" 2>/dev/null || true)"
+    if [ "$have" = "$want" ]; then
+      echo "  skip:   $name (already registered)"
+      continue
+    fi
+    if [ -n "$have" ]; then
+      echo "  update: $name"
+      run "$claude_bin" mcp remove --scope user "$name"
+    else
+      echo "  add:    $name"
+    fi
+    run "$claude_bin" mcp add-json --scope user "$name" "$want"
+  done < <(jq -r '.mcpServers | keys[]' "$mcp_servers")
+fi
+
 # --- Summary ------------------------------------------------------------
 echo
 echo "==> Done: $linked linked, $skipped skipped, $backed_up backed up"

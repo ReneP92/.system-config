@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "linear": {
+      "type": "http",
+      "url": "https://mcp.linear.app/mcp"
+    },
+    "notion": {
+      "type": "http",
+      "url": "https://mcp.notion.com/mcp"
+    },
+    "notion-changeport": {
+      "type": "http",
+      "url": "https://mcp.notion.com/mcp"
+    },
+    "notion-voicely": {
+      "type": "http",
+      "url": "https://mcp.notion.com/mcp"
+    }
+  }
+}
