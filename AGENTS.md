@@ -9,13 +9,21 @@
   This makes sure you find the real problem so your fix will actually solve it.
 - When end-to-end testing a product, be picky about the UI you see and be obsessed with pixel perfection.
   If something clearly looks off, even if it is not directly related to what you are doing, try to get it fixed along the way.
+- For frontend, UI or UX work, load the `frontend-craft` skill.
 - Apply that same high standard to engineering excellence: lint, test failures, and test flakiness.
   If you see one, even if it is not caused by what you are working on right now, still get it fixed.
 
 ## Sub-agents
 
-- Delegate broad codebase sweeps, independent parallel workstreams, and fresh-eyes reviews of a diff or plan.
+- Delegate broad codebase sweeps, independent parallel workstreams, fresh-eyes reviews of a plan, and code reviews (see Code reviews).
 - Do not delegate known-file lookups, edits that depend on conversation context, or sequential dependent steps.
 - Subagents do not see this conversation: brief them fully (goal, target, constraints, what "done" means, what to return).
 - Treat subagent findings as leads, not facts. Verify key claims (path:line, repro results) yourself before acting on or reporting them.
 - Bug root causes still come from an E2E reproduction, never from a subagent's code reading alone.
+
+## Code reviews
+
+- Always run a code review in a `fresh-eyes-reviewer` subagent, never inline in the session that wrote the code. It sees only its brief, not how the work was produced, which keeps the review independent.
+- Brief it fully: the goal of the change, the target (branch, base and range, or paths) and the constraints that matter.
+- Treat its findings as leads: confirm each one, fix the confirmed ones, and report which ones were dropped and why.
+- If the host has no subagents, run `/eng-review` in a new session instead.

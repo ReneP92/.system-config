@@ -26,6 +26,7 @@ The script:
   - [treehouse](https://kunchenguid.github.io/treehouse) via `curl -fsSL https://kunchenguid.github.io/treehouse/install.sh | sh`
   - [Claude Code](https://code.claude.com) via `curl -fsSL https://claude.ai/install.sh | bash` (the native install, which updates itself)
   - [Cursor CLI](https://cursor.com/cli) via `curl https://cursor.com/install -fsS | bash`
+- registers the Claude Code MCP servers listed in `assets/claude-mcp-servers.json` (see [MCP servers](#mcp-servers))
 
 The nvim config lives in this repo at `.config/nvim` and is linked as a whole directory to `~/.config/nvim`.
 
@@ -35,7 +36,7 @@ To add a new config file, place it in the repo (dot-prefixed, at the path it sho
 
 ## Shared agent skills
 
-Eleven gstack-inspired skills live in `.claude/skills/` and are linked into `~/.claude/skills/`. Claude Code, OpenCode and Cursor CLI discover that global directory. Each managed skill is linked as a whole folder because Cursor skips individually symlinked `SKILL.md` files. Other installed skills remain untouched. OpenCode slash-command adapters live in `.config/opencode/commands/`; the workflows themselves have one canonical copy.
+Twelve skills live in `.claude/skills/`: eleven adapted from gstack and `frontend-craft`, adapted from taste-skill and pick-ui-library. They are linked into `~/.claude/skills/`. Claude Code, OpenCode and Cursor CLI discover that global directory. Each managed skill is linked as a whole folder because Cursor skips individually symlinked `SKILL.md` files. Other installed skills remain untouched. OpenCode slash-command adapters live in `.config/opencode/commands/`; the workflows themselves have one canonical copy.
 
 Install or refresh only these files:
 
@@ -53,6 +54,7 @@ Install or refresh only these files:
 | `/ship` | Final validation, documentation and requested commit/PR delivery |
 | `/spec` | Code-grounded requirements and testable acceptance criteria |
 | `/office-hours` | Product discovery and competing technical approaches |
+| `/frontend-craft` | Building UI: design read, taste rules and library picks (shadcn/ui, Radix, Aceternity, Magic UI) |
 | `/design-review` | Visual polish, accessibility and interaction quality |
 | `/devex-review` | Developer onboarding, tooling ergonomics and diagnostics |
 | `/careful` | Advisory review of potentially destructive operations |
@@ -66,9 +68,15 @@ After installing, use Claude Code's `/reload-skills` if the new directory is not
 
 ### Fresh-eyes reviewer subagent
 
-`/eng-review` and `/plan-eng-review` hand non-trivial reviews to a read-only `fresh-eyes-reviewer` subagent that runs in parallel and sees only its brief, not the conversation that produced the work. The skill then verifies each of its findings before reporting them. The canonical definition is `.claude/agents/fresh-eyes-reviewer.md`, linked to `~/.claude/agents/`. It reuses the eng-review checklist and plan-eng-review dimensions instead of copying them. In Claude Code its Bash calls pass through `.claude/hooks/readonly-guard.mjs`, which allows read-only git and gh commands and blocks git writes, package installs and nested shells. File writes and output redirection are allowed only to absolute temporary paths (`/tmp`, `/var/folders`), so repro scripts work but the repo under review stays untouched. The guard prevents accidents but is not a sandbox. OpenCode uses the thin adapter `.config/opencode/agents/fresh-eyes-reviewer.md`, which points at the same instructions and denies edits and git writes through permission rules. Run the guard tests with `node --test tests/readonly-guard.test.mjs`.
+`/eng-review` and `/plan-eng-review` hand non-trivial reviews to a read-only `fresh-eyes-reviewer` subagent that runs in parallel and sees only its brief, not the conversation that produced the work. The skill then verifies each of its findings before reporting them. The canonical definition is `.claude/agents/fresh-eyes-reviewer.md`, linked to `~/.claude/agents/`. It reuses the eng-review checklist and plan-eng-review dimensions instead of copying them. In Claude Code its Bash calls pass through `.claude/hooks/readonly-guard.mjs`, which allows read-only git and gh commands and blocks git writes, package installs and nested shells. It also blocks options of otherwise read-only tools that write files or run commands, such as `sed` `w`/`e`, `git diff --output`, `git grep -O`, `rg --pre`, `find -exec rm` and linter `--fix`. File writes and output redirection are allowed only to absolute temporary paths (`/tmp`, `/var/folders`), so repro scripts work but the repo under review stays untouched. The guard prevents accidents but is not a sandbox. OpenCode uses the thin adapter `.config/opencode/agents/fresh-eyes-reviewer.md`, which points at the same instructions and uses permission rules instead of the guard: read-only shell commands (file viewing, search, git and `gh pr` reads) run without prompting, and other commands ask. Options of those commands that write files or run programs (`git diff --output`, `git grep -O`, `rg --pre`, `find -delete`/`-exec`) are denied, as are edits and git writes. Permission globs cannot tell a redirect from a quoted `>`, so any command containing `>` asks, including searches such as `rg '=>'`. Run the guard tests with `node --test tests/readonly-guard.test.mjs`.
 
-These are locally maintained adaptations, not a full gstack installation. They use available native tools without a required browser package, external reviewer, telemetry or auto-updater. Upstream provenance and the MIT license are recorded in `.claude/skills/NOTICE.txt` and `.claude/skills/LICENSE.txt`. Review upstream improvements selectively and update the recorded revision when incorporating them.
+These are locally maintained adaptations, not a full gstack installation. They use available native tools without a required browser package, external reviewer, telemetry or auto-updater. Upstream provenance and the MIT license are recorded in `.claude/skills/NOTICE.txt` and `.claude/skills/LICENSE.txt`; `frontend-craft` keeps its own provenance and licenses in `.claude/skills/frontend-craft/NOTICE.txt`. Review upstream improvements selectively and update the recorded revision when incorporating them.
+
+## MCP servers
+
+Claude Code and OpenCode get the same remote MCP servers: Linear, plus three Notion entries (`notion`, `notion-changeport`, `notion-voicely`) that point at the same URL so each can be signed in to a different workspace. OpenCode reads them from `.config/opencode/opencode.jsonc`. Claude Code keeps user-scoped servers in `~/.claude.json`, which also holds app state it rewrites constantly, so that file cannot be linked. Its list lives in `assets/claude-mcp-servers.json` instead, and `bootstrap.sh` registers each entry with `claude mcp add-json --scope user`. It skips servers that already match, re-adds ones whose config drifted, and leaves servers added by hand alone. Edit both files to add or remove a server, then re-run `./bootstrap.sh`; removing a server from the list does not unregister it, so run `claude mcp remove --scope user <name>` for that.
+
+Each server signs in with OAuth on first use: run `/mcp` in Claude Code or `opencode mcp auth <name>` in OpenCode. Once the local `notion` server is registered, Claude Code hides the claude.ai Notion connector, which has the same URL.
 
 ## Agent tmux status
 

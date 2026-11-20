@@ -1,0 +1,85 @@
+Frontend skill adapted from taste-skill and pick-ui-library (both MIT).
+
+Upstreams and reference revisions:
+  taste-skill           https://github.com/Leonxlnx/taste-skill
+                        f6b76575f949707b4e3c37cd86cb44b0b98643e8
+  taste-skill-classics  https://github.com/Leonxlnx/taste-skill-classics
+                        5e08c9383dc4ad7fc0df70e1ac8cfa09ec356305
+  emilkowalski/skills   https://github.com/emilkowalski/skills
+                        0f2e23b32bb1265e84cff8d3e75785fec953fb1b
+
+This is a locally maintained adaptation, not an upstream installation.
+The reference revisions identify the sources reviewed, not an installed runtime.
+
+Source mapping at those revisions:
+  references/taste.md     -> taste-skill-classics skills/taste-skill-v1/SKILL.md,
+                             skills/taste-skill-v2-experimental/SKILL.md and
+                             taste-skill skills/taste-skill/references/
+                             (system.md, layout-v4.md, motion.md, copy.md,
+                             copy-tells.md)
+  references/libraries.md -> emilkowalski/skills skills/pick-ui-library/SKILL.md
+                             and ui-cheatsheet.md
+  SKILL.md                -> the design read, dials and pick-ui-library method,
+                             combined with this collection's workflow
+
+Local adaptations keep the design read, the three dials, the anti-default rules
+and the curated library method. They drop taste-skill's scripts, finish gate,
+stop hook, randomly dealt palettes and layouts, and its landing-page-only rules,
+and they defer to a product's existing design system. Library picks default to
+shadcn/ui on Radix and add effect registries under explicit limits.
+
+Maintenance: review upstream changes selectively, update the authored files and
+these reference revisions together, and preserve this notice and the licenses
+below when redistributing.
+
+================================================================================
+taste-skill and taste-skill-classics
+================================================================================
+
+MIT License
+
+Copyright (c) 2026 Leonxlnx
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+emilkowalski/skills
+================================================================================
+
+MIT License
+
+Copyright (c) 2026 Emil Kowalski
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
