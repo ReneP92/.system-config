@@ -240,9 +240,14 @@ else
 fi
 
 # The native install updates itself; a Homebrew copy next to it would shadow
-# or lag behind it, so Claude Code is not in the Brewfile.
-if [ -x "$HOME/.local/bin/claude" ]; then
-  echo "  skip:   Claude Code (already installed)"
+# or lag behind it, so Claude Code is not in the Brewfile. Any existing copy
+# counts as installed, so one from elsewhere doesn't get a second beside it.
+claude_bin="$(command -v claude || true)"
+if [ -z "$claude_bin" ] && [ -x "$HOME/.local/bin/claude" ]; then
+  claude_bin="$HOME/.local/bin/claude"
+fi
+if [ -n "$claude_bin" ]; then
+  echo "  skip:   Claude Code (already installed at $claude_bin)"
 elif $DRY_RUN; then
   echo "  [dry-run] curl -fsSL https://claude.ai/install.sh | bash"
 else
@@ -265,7 +270,7 @@ fi
 # server from the repo's list instead, re-adding any whose config drifted.
 # Servers added by hand and missing from the list are left alone.
 echo "==> Registering Claude Code MCP servers"
-claude_bin="$(command -v claude || echo "$HOME/.local/bin/claude")"
+claude_bin="${claude_bin:-$HOME/.local/bin/claude}"
 mcp_servers="$REPO_DIR/assets/claude-mcp-servers.json"
 if [ ! -x "$claude_bin" ]; then
   echo "  skip:   MCP servers (Claude Code not installed)"
