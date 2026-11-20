@@ -211,7 +211,27 @@ if [ -n "$legacy_background" ]; then
 fi
 
 # --- Homebrew packages --------------------------------------------------
+# Homebrew refuses to load formulae and casks from third-party taps until
+# they are trusted. A tap-qualified entry in the Brewfile (org/tap/name) is
+# one we chose on purpose, so trust exactly those entries, never their whole
+# tap. Trusting works before the tap is cloned, so this runs ahead of bundle.
+trust_brewfile_taps() {
+  local trusted kind name key flag
+  trusted="$(brew trust --json=v1)"
+  while read -r kind name; do
+    if [ "$kind" = cask ]; then key=casks flag=--cask; else key=formulae flag=--formula; fi
+    if jq -e --arg k "$key" --arg n "$name" '.[$k] | index($n)' <<<"$trusted" >/dev/null; then
+      echo "  skip:   $name (already trusted)"
+    else
+      echo "  trust:  $name"
+      run brew trust "$flag" "$name"
+    fi
+  done < <(sed -nE 's#^(brew|cask) "([^"/]+/[^"/]+/[^"/]+)".*#\1 \2#p' "$REPO_DIR/Brewfile")
+}
+
 if ! $NO_BREW; then
+  echo "==> Trusting third-party Homebrew packages"
+  trust_brewfile_taps
   echo "==> Installing Homebrew packages"
   run brew bundle --file="$REPO_DIR/Brewfile"
 fi
