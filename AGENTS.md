@@ -15,7 +15,7 @@
 
 ## Sub-agents
 
-- Delegate broad codebase sweeps, independent parallel workstreams, and fresh-eyes reviews of a plan. Code reviews go to a new session instead (see Code reviews).
+- Delegate broad codebase sweeps, independent parallel workstreams, fresh-eyes reviews of a plan, and code reviews (see Code reviews).
 - Do not delegate known-file lookups, edits that depend on conversation context, or sequential dependent steps.
 - Subagents do not see this conversation: brief them fully (goal, target, constraints, what "done" means, what to return).
 - Treat subagent findings as leads, not facts. Verify key claims (path:line, repro results) yourself before acting on or reporting them.
@@ -23,8 +23,7 @@
 
 ## Code reviews
 
-- Always run a code review in a new session, never in the session that wrote the code. A subagent of the authoring session does not count.
-- Brief the new session fully, because it sees none of this conversation: the goal of the change, the target (branch, base and range, or paths), the constraints that matter, and the name of the original session to report back to.
-- In Claude Code, get this session's name from `ListAgents` and start the reviewer with `claude --bg -n review-<topic> "<brief>"`. Tell it to run `/eng-review` and post its findings to the original session with `SendMessage`.
-- The review session posts its findings to the original session rather than only leaving them in its own transcript. If it cannot reach the original session, it says so in its final output and keeps the findings there.
-- The original session treats the findings as leads: confirm each one, fix the confirmed ones, and report which ones were dropped and why.
+- Always run a code review in a `fresh-eyes-reviewer` subagent, never inline in the session that wrote the code. It sees only its brief, not how the work was produced, which keeps the review independent.
+- Brief it fully: the goal of the change, the target (branch, base and range, or paths) and the constraints that matter.
+- Treat its findings as leads: confirm each one, fix the confirmed ones, and report which ones were dropped and why.
+- If the host has no subagents, run `/eng-review` in a new session instead.

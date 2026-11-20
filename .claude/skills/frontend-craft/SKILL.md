@@ -35,6 +35,6 @@ Install what is missing with the package manager the lockfile indicates. For sha
 
 Run the app and inspect the changed screens in a real browser at a desktop and a narrow viewport, in light and dark mode when the product has both, across the states above. Run the project's lint, type checks and tests. A successful build is not proof that the UI looks or works right. If the app cannot run or no browser is available, say so instead of claiming visual verification.
 
-Use the design-review workflow for a polish pass and the qa workflow for functional checks of non-trivial flows. Code review runs in a new session, as the agent instructions require.
+Use the design-review workflow for a polish pass and the qa workflow for functional checks of non-trivial flows. Code review runs in a `fresh-eyes-reviewer` subagent, as the agent instructions require.
 
 Report the design read and dials, the libraries chosen or installed (and competitors flagged but kept), the viewports and states checked, and the remaining gaps.
