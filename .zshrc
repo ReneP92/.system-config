@@ -1,4 +1,7 @@
-
+# Load the current directory's .envrc before instant prompt starts, so its
+# "direnv: loading" output lands above the prompt instead of tripping p10k's
+# console-output warning. The hook at the bottom then finds nothing to change.
+(( ${+commands[direnv]} )) && emulate zsh -c "$(direnv export zsh)"
 
 # -------------------------------------- Powerlevel 10k --------------------------------------------
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
@@ -202,4 +205,18 @@ alias oc="opencode"
 # bun completions
 [ -s "/Users/renepersau/.bun/_bun" ] && source "/Users/renepersau/.bun/_bun"
 export PATH="$HOME/.local/bin:$PATH"
-eval "$(direnv hook zsh)"
+
+# --------------------------------------------- pnpm ------------------------------------------------
+# Only on machines with a standalone pnpm install. pnpm lives inside $PNPM_HOME/bin,
+# so check for the directory rather than the command (it is not on PATH yet)
+if [[ -d "$HOME/Library/pnpm/bin" ]]; then
+  export PNPM_HOME="$HOME/Library/pnpm"
+  case ":$PATH:" in
+    *":$PNPM_HOME/bin:"*) ;;
+    *) export PATH="$PNPM_HOME/bin:$PATH" ;;
+  esac
+fi
+
+# --------------------------------------------- direnv ----------------------------------------------
+# Paired with the `direnv export` at the top of this file (see there)
+(( ${+commands[direnv]} )) && emulate zsh -c "$(direnv hook zsh)"
