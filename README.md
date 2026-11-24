@@ -136,7 +136,7 @@ Each theme is one palette file, `themes/<name>.conf`, the single source of truth
 - **fzf** colors are set by `.zshrc` from `palette.conf`, so new shells pick up a switch
 - **Claude Code** uses the custom theme `custom:active` (set in `.claude/settings.json`). The command copies `assets/claude-themes/<name>.json` to `~/.claude/themes/active.json`, which running sessions hot-reload (sessions started before `~/.claude/themes/` existed need one restart). `.zshrc` sets `CLAUDE_CODE_TMUX_TRUECOLOR=1`, because Claude Code otherwise drops to 256-color approximations inside tmux
 
-On macOS, switching themes also sets the desktop wallpaper on every display and Space to `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`, with matching images for `rose-pine`, `nightowl` and `tokyonight`. The `theme` script reads palettes, wallpapers and Claude Code themes straight from the repo, so no extra link is needed. macOS may ask for permission to control System Events the first time the wallpaper is applied.
+On macOS, switching themes also sets the desktop wallpaper on every display and Space to `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`, which every theme has. The `theme` script reads palettes, wallpapers and Claude Code themes straight from the repo, so no extra link is needed. macOS may ask for permission to control System Events the first time the wallpaper is applied.
 
 To add a theme:
 
@@ -144,6 +144,8 @@ To add a theme:
 2. Add a Claude Code palette as `assets/claude-themes/<name>.json` (a [custom theme](https://code.claude.com/docs/en/terminal-config.md#create-a-custom-theme) with `base` and `overrides`).
 3. Add its macOS wallpaper as `assets/wallpapers/<name>-dark-wallpaper-2560x1440.png`.
 4. Add a colorscheme plugin with `cond = theme == "<name>"` in `.config/nvim/lua/rene/plugins/colorscheme.lua`, or extend the `cond` of an existing spec when reusing its plugin, as `tokyonight` and `nightowl` do.
+
+`catppuccin`, `everforest`, `gruvbox`, `kanagawa`, `nord`, `matte-black`, `lumon`, `hackerman`, `retro-82` and `solitude` are ported from [Omarchy](https://github.com/basecamp/omarchy) (MIT): the palettes come from its `themes/<name>/colors.toml`, the wallpapers from its `backgrounds/`, and nvim uses the colorscheme plugin each Omarchy theme names in its `neovim.lua`. The header of each `themes/<name>.conf` records the Omarchy commit it was ported from. Monochrome palettes (`lumon`, `hackerman`) get a real red for errors and removed lines, so Claude Code diffs stay readable.
 
 ---
 

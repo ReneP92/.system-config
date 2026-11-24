@@ -54,6 +54,18 @@ function palette(name) {
   return values;
 }
 
+// The theme the others' Claude Code themes are checked against
+const DEFAULT_THEME = "rose-pine";
+
+const NVIM_COLORSCHEMES = ".config/nvim/lua/rene/plugins/colorscheme.lua";
+const nvimColorschemes = readFileSync(join(repo, NVIM_COLORSCHEMES), "utf8");
+
+function claudeThemeOf(name) {
+  const path = join(repo, "assets/claude-themes", `${name}.json`);
+  assert.ok(existsSync(path), `${name}: Claude Code theme`);
+  return JSON.parse(readFileSync(path, "utf8"));
+}
+
 let home;
 let bin;
 
@@ -110,10 +122,24 @@ test("every theme has a complete palette, a Claude Code theme and a wallpaper", 
         assert.match(values[key], /^#[0-9a-fA-F]{6}$/, `${name}: THEME_${key} is not a hex color`);
       }
     }
-    assert.ok(existsSync(join(repo, "assets/claude-themes", `${name}.json`)), `${name}: Claude Code theme`);
+    const claudeTheme = claudeThemeOf(name);
+    assert.equal(claudeTheme.base, "dark", `${name}: Claude Code theme base`);
+    assert.deepEqual(
+      Object.keys(claudeTheme.overrides).sort(),
+      Object.keys(claudeThemeOf(DEFAULT_THEME).overrides).sort(),
+      `${name}: Claude Code theme overrides the same colors as ${DEFAULT_THEME}`,
+    );
+    for (const [key, value] of Object.entries(claudeTheme.overrides)) {
+      assert.match(value, /^#[0-9a-fA-F]{6}$/, `${name}: Claude Code ${key} is not a hex color`);
+    }
     assert.ok(
       existsSync(join(repo, "assets/wallpapers", `${name}-dark-wallpaper-2560x1440.png`)),
       `${name}: wallpaper`,
+    );
+    // nvim would otherwise start without any colorscheme for it
+    assert.ok(
+      nvimColorschemes.includes(`theme == "${name}"`),
+      `${name}: no colorscheme spec with cond theme == "${name}" in ${NVIM_COLORSCHEMES}`,
     );
   }
 });
