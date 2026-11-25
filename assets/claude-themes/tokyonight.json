@@ -8,7 +8,7 @@
     "clawd_background": "#1a1b26",
     "briefLabelClaude": "#ff9e64",
     "briefLabelYou": "#7dcfff",
-    "text": "#c0caf5",
+    "text": "#a9b1d6",
     "inverseText": "#1a1b26",
     "inactive": "#737aa2",
     "inactiveShimmer": "#9da2be",
@@ -44,7 +44,7 @@
     "userMessageBackground": "#292e42",
     "userMessageBackgroundHover": "#3b4261",
     "composerSidebarBackground": "#16161e",
-    "selectionBg": "#283457",
+    "selectionBg": "#3b4261",
     "bashMessageBackgroundColor": "#351830",
     "memoryBackgroundColor": "#263140"
   }
