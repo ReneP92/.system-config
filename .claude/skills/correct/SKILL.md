@@ -38,13 +38,15 @@ Group the evidence into classes. A class counts once it has happened twice. Reco
 
 Try the levels in this order and stop at the first one that makes the mistake fail or impossible:
 
-1. **Architecture.** Give each piece of state one owner and each task one supported way to do it. Hide internals so the wrong import fails. Replace hand-synced lists with one source of truth. Delete old ways and dead code an agent would copy.
+1. **Architecture.** Give each piece of state one owner and each task one supported way to do it. Hide internals so the wrong import fails. Replace hand-synced lists with one source of truth. Delete old ways and dead code an agent would copy. When an API needs nuance to use well, allow it only inside one wrapper module and ban it everywhere else (for example, React's `useEffect` only inside the framework layer, never in product code). Encode module boundaries in the directory structure and fail the wrong import with a dependency lint.
 2. **Types.** Make the bad state unrepresentable, so the wrong code does not compile.
-3. **A lint, CI check or agent hook.** When the bad code still compiles, add a check whose error names the file, type or function to use instead. For mistakes in agent behavior rather than code (writing style, forbidden commands, commit trailers), a host hook such as a Claude Code `PreToolUse` or `Stop` hook is the equivalent. If the pattern is already common, fail only when a change adds more occurrences.
+3. **A lint, CI check or agent hook.** When the bad code still compiles, add a check whose error names the file, type or function to use instead and tells the agent to fix the cause, not to work around it. When the project allows exceptions, the message also names the exception path (the directive, with a reason and an owner). For mistakes in agent behavior rather than code (writing style, forbidden commands, commit trailers), a host hook such as a Claude Code `PreToolUse` or `Stop` hook is the equivalent. If the pattern is already common, fail only when a change adds more occurrences.
 4. **A test.** Assert the behavior the mistake broke. Fix or delete any existing test that still passes when that behavior breaks, or that fails when only the internals change.
-5. **An instruction, last.** Use it only for judgment calls no check can decide. Make it specific, put it where the agent reads it at the moment of the decision, and include an example of the failure.
+5. **An instruction, last.** Use it only for judgment calls no check can decide. Make it specific, put it where the agent reads it at the moment of the decision, and include an example of the failure. State when it applies and when it does not: agents treat an unscoped correction as a rule that can never be broken.
 
 When a level above the one you chose was possible but not taken, say why.
+
+When the mistake already has many occurrences, sequence the work: first the check that blocks new occurrences, then remove the existing examples agents would copy (beyond the occurrence just corrected, a proposal that needs the user's approval), then strengthen the verification that would catch the mistake at runtime.
 
 ## 3. Prove each check
 

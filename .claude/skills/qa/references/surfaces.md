@@ -18,4 +18,4 @@ Trigger the actual handler or producer/worker path. Observe queue state and fina
 
 ## Choosing tests
 
-Use the cheapest test that detects the real regression, plus cross-boundary tests where the defect lives. A mocked transport cannot prove delivery; a source grep cannot prove runtime behavior. Reuse fixtures and assertions that already model the contract. Record which behavior remains untested when infrastructure is unavailable.
+Use the cheapest test that detects the real regression, plus cross-boundary tests where the defect lives. For state machines, parsers, serialization round trips, concurrency and retries, consider a property-based test with the project's library or the ecosystem's standard one (fast-check, Hypothesis, proptest): one example run proves one case, while a property states what must hold for every input and finds the case nobody wrote down. A mocked transport cannot prove delivery; a source grep cannot prove runtime behavior. Reuse fixtures and assertions that already model the contract. Record which behavior remains untested when infrastructure is unavailable.

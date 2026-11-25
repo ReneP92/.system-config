@@ -19,6 +19,10 @@ enforcement, and the full workflow needs an explicit /correct. The skill
 follows this collection's scope rules (no commits, read-only modes report)
 and drops the expiry-date and human-approval requirement on exceptions.
 
+The architecture examples, the scoping rule for written instructions and the
+order of work for common mistakes follow Lauren Tan's talk "All Code Is Slop
+(Except Mine)" (https://ai.engineer/talks/O_zcc6Xl12g-all-code-is-slop-except-mine).
+
 Other pstack ideas adapted into this collection are listed in
 ../NOTICE.txt. Preserve this notice and the license below when
 redistributing.

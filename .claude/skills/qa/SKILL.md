@@ -12,7 +12,7 @@ Default to testing and reporting. Apply repairs when the user requests fixes or 
 
 ## Prepare
 
-1. Inspect documented setup and existing test tooling. Use available browser automation, HTTP clients, shell tools and native runners; do not assume gstack binaries or a particular framework.
+1. Inspect documented setup and existing test tooling. Use available browser automation, HTTP clients, shell tools and native runners; do not assume gstack binaries or a particular framework. If the project has a verification skill (`.claude/skills/verify-*/`), use its launch, doctor, drive and evidence recipes, and cover the features its map lists for the affected area. When the app and the map disagree, decide whether the app regressed (a finding) or the map is stale (report it as drift; `/verification-setup` maintains the map).
 2. Choose a representative happy path, important boundary and failure cases, and adjacent behavior affected by the change. Read `references/surfaces.md` for the selected surfaces.
 3. Use isolated test data and a local or designated test environment for mutating probes. Identify where durable effects land. If access or tooling is missing, report the blocked surface and continue independent checks.
 4. Save screenshots or logs only to permitted locations when useful; avoid overwriting earlier evidence. Record the command/request, relevant input, expected outcome and actual result. Exclude credentials from reports.

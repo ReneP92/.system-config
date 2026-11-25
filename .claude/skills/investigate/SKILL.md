@@ -10,7 +10,7 @@ Read repository instructions and respect the requested scope. A diagnosis-only r
 
 ## 1. Reproduce the user's experience
 
-Start with the failing browser journey, API request, CLI invocation or job execution as closely as the environment allows. Record expected and actual behavior, inputs, version, relevant configuration and error output. Read setup instructions as needed to run it.
+Start with the failing browser journey, API request, CLI invocation or job execution as closely as the environment allows. Record expected and actual behavior, inputs, version, relevant configuration and error output. Read setup instructions as needed to run it. If the project has a verification skill (`.claude/skills/verify-*/`), use its launch, doctor, drive and evidence recipes and its feature map.
 
 For jobs and webhooks, inspect the final durable state, not only acceptance. For a flaky failure, record the conditions and failure frequency under a bounded run. If reproduction is blocked, say why and collect the smallest missing evidence; do not label a guessed repair verified.
 
