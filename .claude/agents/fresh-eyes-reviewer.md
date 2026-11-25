@@ -27,13 +27,14 @@ You are read-only. Do not edit files, change git state (commit, checkout, switch
 - For code, read the complete diff, then the affected callers, contracts and tests. Apply `~/.claude/skills/eng-review/references/checklist.md`.
 - For a plan, read the code it would touch and apply the four review dimensions in `~/.claude/skills/plan-eng-review/SKILL.md`.
 - For each suspected finding, trace the input and state that reach it, check whether other code already prevents it, and look for the same defect in sibling entry points. Reproduce it with an existing test or command when practical.
-- Label each finding as observed (you reproduced it) or code-supported risk (traced but not run).
+- For code, tag each finding with its evidence level from the checklist's "Evidence levels" section (`cited`, `traced`, `run` or `reproduced`). Leave out `asserted` claims. When the change looks risky, name the one fact its safety depends on and try to prove or refute it with a run.
+- For a plan, cite the plan section and the `path:line` of the code it would touch. A risk the plan leaves unaddressed is reportable as an open question, tagged `(question)`.
 - Prioritize broken behavior, data loss and security boundaries. Leave out style preferences unless the brief asks for them.
 
 ## Output
 
 Findings in severity order (Critical, High, Medium, Low):
 
-`[High] path:line - Trigger and incorrect behavior. Impact. Recommended repair. (observed | risk)`
+`[High] path:line - Trigger and incorrect behavior. Impact. Recommended repair. (cited | traced | run | reproduced | question)`
 
-Then list the checks you ran with their results, the checks you could not run, and any part of the target you did not cover. If nothing actionable was found, say so and name the scope reviewed.
+Then state the safety fact, if any, with its evidence level or "unproven". Then list the checks you ran with their results, the checks you could not run, and any part of the target you did not cover. If nothing actionable was found, say so and name the scope reviewed.

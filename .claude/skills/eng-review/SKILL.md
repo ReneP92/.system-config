@@ -23,7 +23,8 @@ Read `references/checklist.md` and apply the relevant categories. Prioritize a d
 For each suspected finding:
 - Trace the input and state needed to reach it. Check whether surrounding code or another part of the diff already prevents it.
 - Inspect sibling entry points and consumers for the same defect class, especially newly accepted values or changed defaults.
-- Prove the issue with a bounded test or end-user reproduction when practical and permitted. Distinguish observed failures from code-supported risks.
+- Prove the issue with a bounded test or end-user reproduction when practical and permitted. Tag it with its evidence level from the checklist (`cited`, `traced`, `run` or `reproduced`); an `asserted` finding is not reportable.
+- When a change looks risky, identify the one fact its safety depends on and prove or refute it, per the checklist's evidence levels.
 - Cite the smallest useful `path:line` range, the triggering condition, impact and a concrete fix direction.
 - Inspect changed tests, snapshots, lint rules, timeouts and CI checks. A relaxation is not automatically wrong; establish whether it hides a regression or follows a legitimate changed contract.
 
@@ -37,6 +38,6 @@ Reproduce first, then make a root-cause repair consistent with repository patter
 
 Lead with findings in severity order:
 
-`[High] path:line - Trigger and incorrect behavior. Impact. Recommended repair.`
+`[High] path:line - Trigger and incorrect behavior. Impact. Recommended repair. (cited | traced | run | reproduced)`
 
-Then state verified checks, unresolved findings, fixes if authorized, and coverage limits. If nothing actionable was found, say so and name the scope. Missing tools or unrun tests are missing evidence, not passing checks. Do not present this review as a comprehensive security audit.
+Then state any safety fact the change depends on with its evidence level or "unproven", verified checks, unresolved findings, fixes if authorized, and coverage limits. If nothing actionable was found, say so and name the scope. Missing tools or unrun tests are missing evidence, not passing checks. Do not present this review as a comprehensive security audit.
