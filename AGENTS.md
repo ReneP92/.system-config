@@ -12,6 +12,8 @@
 - For frontend, UI or UX work, load the `frontend-craft` skill.
 - Apply that same high standard to engineering excellence: lint, test failures, and test flakiness.
   If you see one, even if it is not caused by what you are working on right now, still get it fixed.
+- Don't write comments that narrate what the code does.
+  Beyond the doc comments, license headers, tool directives and owned or tracked TODOs a project needs, comment only a constraint, tradeoff or external quirk the code can't express, and prefer a clearer name, type or extracted function over a comment.
 - When reporting results, back each claim with its evidence (a command and its output, a `path:line`, a screenshot) or label it as inferred or a guess.
   Never hand me a check you could run yourself.
 - When I correct the same kind of mistake a second time, fix it and propose a check that makes it impossible (architecture, types, a lint, a hook or a test) instead of only adding another written rule.
