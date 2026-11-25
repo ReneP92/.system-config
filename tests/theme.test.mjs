@@ -136,10 +136,13 @@ test("every theme has a complete palette, a Claude Code theme and a wallpaper", 
       existsSync(join(repo, "assets/wallpapers", `${name}-dark-wallpaper-2560x1440.png`)),
       `${name}: wallpaper`,
     );
-    // nvim would otherwise start without any colorscheme for it
+    // nvim would otherwise start without any colorscheme for it: a spec
+    // whose cond names it, or an entry in the aether.nvim palette table
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     assert.ok(
-      nvimColorschemes.includes(`theme == "${name}"`),
-      `${name}: no colorscheme spec with cond theme == "${name}" in ${NVIM_COLORSCHEMES}`,
+      new RegExp(`^\\s*cond = .*theme == "${escaped}"`, "m").test(nvimColorschemes) ||
+        nvimColorschemes.includes(`["${name}"] = {`),
+      `${name}: no colorscheme spec with cond theme == "${name}" and no aether_palettes entry in ${NVIM_COLORSCHEMES}`,
     );
   }
 });

@@ -7,7 +7,7 @@ local theme = theme_state.name()
 local transparent = theme_state.transparent()
 
 -- background styles for the tokyonight-derived themes (tokyonight itself,
--- and lumon/hackerman, which are built on the same engine)
+-- and lumon and the aether.nvim themes, which are built on the same engine)
 local tokyonight_styles = {
   sidebars = transparent and "transparent" or "dark",
   floats = transparent and "transparent" or "dark",
@@ -93,6 +93,80 @@ local function apply_colorscheme(colorscheme, opts)
     vim.api.nvim_set_hl(0, "WinBarNC", { link = "WinBar" })
   end
 end
+
+-- Themes that ship a palette but no colorscheme plugin, applied with
+-- aether.nvim the way Omarchy does: it generates an aether config from the
+-- theme's colors.toml (default/themed/neovim.lua.tpl), using
+-- bright_foreground for the cursor and for selected text, and the selection
+-- color behind it, when colors.toml names none (bin/omarchy-theme-color)
+local aether_palettes = {
+  -- Omarchy themes/jade-horse
+  ["jade-horse"] = {
+    bg = "#142620",
+    dark_bg = "#0f1e19",
+    darker_bg = "#0a1713",
+    lighter_bg = "#203b31",
+    fg = "#dfede5",
+    dark_fg = "#91ad9f",
+    light_fg = "#bed6c9",
+    bright_fg = "#f0faf4",
+    muted = "#64887b",
+    red = "#d88d91",
+    yellow = "#c5cc91",
+    orange = "#d2ab8d",
+    green = "#8bcbb1",
+    cyan = "#86c7c5",
+    blue = "#96b7d0",
+    magenta = "#b7a1c8",
+    brown = "#7e8970",
+    bright_red = "#e6a6aa",
+    bright_yellow = "#dce1ac",
+    bright_green = "#a7dfc5",
+    bright_cyan = "#a2dcda",
+    bright_blue = "#b0cde3",
+    bright_magenta = "#cfbce0",
+    accent = "#8bcbb1",
+    cursor = "#f0faf4",
+    foreground = "#dfede5",
+    background = "#142620",
+    selection = "#2b5147",
+    selection_foreground = "#f0faf4",
+    selection_background = "#2b5147",
+  },
+  -- github.com/devSviat/omarchy-abstract-black-theme
+  ["abstract-black"] = {
+    bg = "#0b0b0b",
+    dark_bg = "#080808",
+    darker_bg = "#050505",
+    lighter_bg = "#171717",
+    fg = "#d7dae0",
+    dark_fg = "#8d9199",
+    light_fg = "#e8eaee",
+    bright_fg = "#ffffff",
+    muted = "#5a5f6b",
+    red = "#e5545a",
+    yellow = "#ecc46a",
+    orange = "#f0894a",
+    green = "#57d9a3",
+    cyan = "#5cd0e0",
+    blue = "#5aa2f0",
+    magenta = "#a67cf0",
+    brown = "#8a7a6a",
+    bright_red = "#ff757b",
+    bright_yellow = "#f7d68a",
+    bright_green = "#7ceac0",
+    bright_cyan = "#8ae0ee",
+    bright_blue = "#86bcff",
+    bright_magenta = "#c29aff",
+    accent = "#8fb4de",
+    cursor = "#ffffff",
+    foreground = "#d7dae0",
+    background = "#0b0b0b",
+    selection = "#202329",
+    selection_foreground = "#ffffff",
+    selection_background = "#202329",
+  },
+}
 
 return {
   {
@@ -274,19 +348,23 @@ return {
       apply_colorscheme("lumon", { fg = { Comment = "#4d6f8c" } })
     end,
   },
+  -- aether.nvim (a tokyonight-derived engine) backs the hackerman theme, via
+  -- hackerman.nvim's colorscheme, and the palette-only themes in
+  -- `aether_palettes`
   {
-    -- a palette for aether.nvim, which takes the options
-    "bjarneo/hackerman.nvim",
-    dependencies = { { "omacom/aether.nvim", branch = "v3" } },
+    "omacom/aether.nvim",
+    branch = "v3",
+    dependencies = { "bjarneo/hackerman.nvim" },
     priority = 1000,
-    cond = theme == "hackerman",
+    cond = theme == "hackerman" or aether_palettes[theme] ~= nil,
     config = function()
       require("aether").setup({
         transparent = transparent,
         styles = tokyonight_styles,
         on_colors = clear_statusline_bg,
+        colors = aether_palettes[theme],
       })
-      apply_colorscheme("hackerman")
+      apply_colorscheme(theme == "hackerman" and "hackerman" or "aether")
     end,
   },
   {
