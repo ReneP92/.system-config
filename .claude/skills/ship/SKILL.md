@@ -31,6 +31,8 @@ Read repository instructions, release documentation and CI configuration. Respec
 - Before a push, confirm branch and remote. Use a normal push; investigate non-fast-forward failures instead of forcing them.
 - Reuse an existing PR for the branch when present. Use the configured forge CLI or connector, and inspect existing title/body before updating them.
 - Describe the actual change, checks run and remaining limitations. Link the relevant GitHub or Linear issue only when known; use a closing reference only if the work meets its acceptance criteria.
+- Give the PR body a Verification section with evidence a reviewer can judge without rerunning anything: each command with its result, the failing-then-passing reproduction for a fix, and screenshots or a recording for a user-visible change, taken from the verification already done. Attach media with the forge tooling where it supports it (recent GitHub CLI versions have `gh pr create --attach` and `gh pr edit --attach`; check `--help` first). Otherwise say the media is available on request, without pasting local paths. Do not commit evidence files unless the project already keeps them, and exclude credentials and personal data.
+
 - If required tooling or authentication is missing, report the blocker and leave verified local work intact. Do not claim a push or PR succeeded without its tool result.
 
 ## Final result
